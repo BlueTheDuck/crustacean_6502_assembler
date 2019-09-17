@@ -1,5 +1,5 @@
-LDA #$FF
+LDA #FF
 STA $FF
-INC
+SEI
 test:
 STA test

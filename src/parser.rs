@@ -1,9 +1,9 @@
 use super::addressing_modes;
 
-struct Code {
-    name: String,
-    arg: Option<String>,
-    addr_mode: addressing_modes::AddressingMode,
+pub struct Code {
+    pub name: String,
+    pub arg: Option<String>,
+    pub addr_mode: addressing_modes::AddressingMode,
     size: usize,
 }
 impl Code {
@@ -40,11 +40,16 @@ impl LineData {
 pub struct Token {
     pub text: String,
     pub line_data: LineData,
+    pub addr: usize,
 }
 impl Token {
-    pub fn new(text: String) -> Token {
+    pub fn new(text: String, addr: usize) -> Token {
         let line_data = LineData::new(&text).expect("line_data");
-        Token { text, line_data }
+        Token {
+            text,
+            line_data,
+            addr,
+        }
     }
     pub fn get_size(&self) -> usize {
         match &self.line_data {
@@ -63,7 +68,7 @@ impl std::fmt::Display for Code {
             self.name,
             match &self.arg {
                 Some(s) => s,
-                None => "---",
+                None => "",
             }
         )
     }
@@ -72,12 +77,13 @@ impl std::fmt::Debug for Code {
     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
         write!(
             fmt,
-            "{} {} // size: {}",
+            "{} {}({:?}) s{}",
             self.name,
             match &self.arg {
                 Some(s) => s,
-                None => "---",
+                None => "",
             },
+            self.addr_mode,
             self.size
         )
     }
@@ -93,14 +99,10 @@ impl std::fmt::Display for LineData {
 }
 impl std::fmt::Debug for LineData {
     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
-        write!(
-            fmt,
-            "{:#?}",
-            match self {
-                LineData::Label(name) => name,
-                LineData::Code(code) => "---",
-            }
-        )
+        match self {
+            LineData::Label(name) => write!(fmt, "{}", name),
+            LineData::Code(code) => write!(fmt, "{:?}", code),
+        }
     }
 }
 
@@ -111,7 +113,11 @@ impl std::fmt::Display for Token {
 }
 impl std::fmt::Debug for Token {
     fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
-        write!(fmt, "{} // {:#?}", self.text, self.line_data)
+        write!(
+            fmt,
+            "{:#06X}: {} // {:#?}",
+            self.addr, self.text, self.line_data
+        )
     }
 }
 // #endregion
