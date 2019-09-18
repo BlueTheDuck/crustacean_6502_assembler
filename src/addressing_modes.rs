@@ -72,8 +72,10 @@ impl AddressingMode {
                 };
                 bytify!(address, 2)
             }
-            AddressingMode::ABSX => unimplemented!("Addr mode assemble"),
-            AddressingMode::ABSY => unimplemented!("Addr mode assemble"),
+            AddressingMode::ABSX|AddressingMode::ABSY => {
+                let value = u16::from_str_radix(&text[1..4], 16).expect("ABS x/y");
+                bytify!(value,2)
+            },
             AddressingMode::IMM => {
                 let value = u8::from_str_radix(&text[1..], 16).expect("IMM");
                 bytify!(value, 1)
