@@ -24,14 +24,27 @@ enum MacroType {
 }
 pub struct Macro {
     name: String,
-    arg: Option<String>
+    arg: Option<String>,
+    size: usize,
+    pub bytes: Vec<u8>
 }
 impl Macro {
-    pub fn new(text: &text) -> Macro {
-        let split = text.split_whitespace();
+    pub fn new(text: &String) -> Macro {
+        let mut split = text.split_whitespace();
+        let name = (split.next().unwrap()[1..]).to_string();
+        let arg = match split.next() {
+            Some(v) => Some(v.to_string()),
+            None => None,
+        };
+        let mut bytes = match name.as_ref() {
+            "bytes" => match &arg {
+                Some(v) => v.to_string().split(",").map(|v|u8::from_str_radix(v,16).unwrap()).collect::<Vec<u8>>(),
+                None => vec![]
+            },
+            _ => vec![],
+        };
         Macro {
-            name: split.get(0).unwrap().to_string(),
-            arg: split.get(1).unwrap_or("").to_string()
+            name,arg,size: bytes.len(),bytes
         }
     }
     
@@ -48,7 +61,7 @@ impl LineData {
             label_name.pop();
             return Some(LineData::Label(label_name));
         } else if line.find('.') == Some(0) {
-            return Some(LineData::Macro(line.to_string()));
+            return Some(LineData::Macro(  Macro::new(&line)  ));
         } else {
             return Some(LineData::Code(Code::new(&line)));
         }
@@ -72,7 +85,7 @@ impl Token {
     pub fn get_size(&self) -> usize {
         match &self.line_data {
             LineData::Code(code) => code.size,
-            LineData::Macro(macro) => unimplemented!("Macros cant be used");
+            LineData::Macro(r#macro) => r#macro.size,
             _ => 0,
         }
     }

@@ -70,7 +70,11 @@ fn main() {
                 hex.reverse();
                 println!("{:02X?}", hex);
                 output_buf.write(&hex);
-            }
+            },
+            parser::LineData::Macro(r#macro) => {
+                let r#macro: parser::Macro = r#macro;
+                output_buf.write(&r#macro.bytes);
+            },
             _ => (),
         }
     }
