@@ -60,7 +60,6 @@ fn main() {
             parser::LineData::Code(code) => {
                 let hex_opcode = opcodes::get_code(&code.name, code.addr_mode)
                     .expect(&format!("Unavailable addr mode for {:#?}", code));
-                print!("{:#04X}", hex_opcode);
                 let mut hex = match code.arg {
                     Some(v) => {
                         addressing_modes::AddressingMode::assemble(&v, code.addr_mode, &labels)

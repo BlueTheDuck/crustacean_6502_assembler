@@ -19,9 +19,27 @@ impl Code {
         }
     }
 }
+enum MacroType {
+    Bytes
+}
+pub struct Macro {
+    name: String,
+    arg: Option<String>
+}
+impl Macro {
+    pub fn new(text: &text) -> Macro {
+        let split = text.split_whitespace();
+        Macro {
+            name: split.get(0).unwrap().to_string(),
+            arg: split.get(1).unwrap_or("").to_string()
+        }
+    }
+    
+}
 pub enum LineData {
     Label(String),
     Code(Code),
+    Macro(Macro)
 }
 impl LineData {
     fn new(line: &String) -> Option<LineData> {
@@ -30,7 +48,7 @@ impl LineData {
             label_name.pop();
             return Some(LineData::Label(label_name));
         } else if line.find('.') == Some(0) {
-            unimplemented!("Macros are not implemented yet");
+            return Some(LineData::Macro(line.to_string()));
         } else {
             return Some(LineData::Code(Code::new(&line)));
         }
@@ -54,6 +72,7 @@ impl Token {
     pub fn get_size(&self) -> usize {
         match &self.line_data {
             LineData::Code(code) => code.size,
+            LineData::Macro(macro) => unimplemented!("Macros cant be used");
             _ => 0,
         }
     }
@@ -94,6 +113,7 @@ impl std::fmt::Display for LineData {
         match self {
             LineData::Label(name) => write!(fmt, "{}:", name),
             LineData::Code(code) => write!(fmt, "{}", code),
+            _ => unimplemented!(""),
         }
     }
 }
@@ -102,6 +122,7 @@ impl std::fmt::Debug for LineData {
         match self {
             LineData::Label(name) => write!(fmt, "{}", name),
             LineData::Code(code) => write!(fmt, "{:?}", code),
+            _ => unimplemented!(""),
         }
     }
 }
