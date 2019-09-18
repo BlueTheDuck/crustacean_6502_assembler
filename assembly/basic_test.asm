@@ -4,4 +4,4 @@ SEI
 test:
 STA test
 data:
-.bytes 44
+.bytes 44,45,46
