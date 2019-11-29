@@ -20,13 +20,15 @@ impl Code {
     }
 }
 enum MacroType {
-    Bytes
+    Bytes,
+    Address,
 }
+#[derive(Debug)]
 pub struct Macro {
     name: String,
     arg: Option<String>,
     size: usize,
-    pub bytes: Vec<u8>
+    pub bytes: Vec<u8>,
 }
 impl Macro {
     pub fn new(text: &String) -> Macro {
@@ -38,21 +40,27 @@ impl Macro {
         };
         let mut bytes = match name.as_ref() {
             "bytes" => match &arg {
-                Some(v) => v.to_string().split(",").map(|v|u8::from_str_radix(v,16).unwrap()).collect::<Vec<u8>>(),
-                None => vec![]
+                Some(v) => v
+                    .to_string()
+                    .split(",")
+                    .map(|v| u8::from_str_radix(v, 16).unwrap())
+                    .collect::<Vec<u8>>(),
+                None => vec![],
             },
             _ => vec![],
         };
         Macro {
-            name,arg,size: bytes.len(),bytes
+            name,
+            arg,
+            size: bytes.len(),
+            bytes,
         }
     }
-    
 }
 pub enum LineData {
     Label(String),
     Code(Code),
-    Macro(Macro)
+    Macro(Macro),
 }
 impl LineData {
     fn new(line: &String) -> Option<LineData> {
@@ -61,7 +69,7 @@ impl LineData {
             label_name.pop();
             return Some(LineData::Label(label_name));
         } else if line.find('.') == Some(0) {
-            return Some(LineData::Macro(  Macro::new(&line)  ));
+            return Some(LineData::Macro(Macro::new(&line)));
         } else {
             return Some(LineData::Code(Code::new(&line)));
         }

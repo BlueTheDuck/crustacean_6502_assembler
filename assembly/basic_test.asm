@@ -1,7 +1,7 @@
 LDA #FF
 STA $FF
 SEI
+JMP test
 test:
-STA test
 data:
 .bytes 44,45,46

@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use structopt::StructOpt;
 
 mod addressing_modes;
+mod assembler;
 mod opcodes;
 mod parser;
 
@@ -16,6 +17,26 @@ struct Args {
     output: Option<PathBuf>,
 }
 // #endregion
+
+// #region Program
+struct Context {
+    addr: usize,
+    tokens: Vec<parser::Token>,
+    labels: HashMap<String, usize>,
+    hex: Vec<u8>
+}
+impl Context {
+    fn new() -> Self {
+        Context {
+            addr: 0,
+            tokens: vec![],
+            labels: HashMap::new(),
+            hex: vec![]Zzz
+        }
+    }
+}
+// #endregion
+
 
 fn main() {
     let args = Args::from_args();
@@ -40,43 +61,22 @@ fn main() {
             })
             .expect(&format!("Could not open file {:?}", &args.input)),
     );
-    let mut addr: usize = 0;
-    let mut tokens: Vec<parser::Token> = vec![];
-    let mut labels: HashMap<String, usize> = HashMap::new();
+    let mut ctx = Context::new();
     for line in input_buf.lines().map(|v| v.unwrap()) {
-        tokens.push(parser::Token::new(line, addr));
-        let last: &parser::Token = tokens.last().unwrap();
-        addr += last.get_size();
+        ctx.tokens.push(parser::Token::new(line, ctx.addr));
+        let last: &parser::Token = ctx.tokens.last().unwrap();
+        ctx.addr += last.get_size();
         match &last.line_data {
             parser::LineData::Label(name) => {
-                labels.insert(name.to_string(), addr);
+                ctx.labels.insert(name.to_string(), ctx.addr);
+            }
+            parser::LineData::Macro(r#macro) => {
+                let r#macro: &parser::Macro = r#macro;
+                println!("{:#?}", r#macro);
             }
             _ => (),
         };
     }
-    for token in tokens {
-        let token: parser::Token = token;
-        match token.line_data {
-            parser::LineData::Code(code) => {
-                let hex_opcode = opcodes::get_code(&code.name, code.addr_mode)
-                    .expect(&format!("Unavailable addr mode for {:#?}", code));
-                let mut hex = match code.arg {
-                    Some(v) => {
-                        addressing_modes::AddressingMode::assemble(&v, code.addr_mode, &labels)
-                    }
-                    None => vec![],
-                };
-                hex.push(hex_opcode as u8);
-                hex.reverse();
-                println!("{:02X?}", hex);
-                output_buf.write(&hex);
-            },
-            parser::LineData::Macro(r#macro) => {
-                let r#macro: parser::Macro = r#macro;
-                output_buf.write(&r#macro.bytes);
-            },
-            _ => (),
-        }
-    }
+    assembler::assemble(&mut ctx);
     // println!("{}",input_file.read);
 }
