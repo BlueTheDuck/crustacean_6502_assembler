@@ -1,0 +1,16 @@
+margin = "\t" | ( " ", " ", " ", " " ) | ( " ", " " );
+digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
+hex_digit = digits | "A" | "B" | "C" | "D" | "E" | "F";
+letter = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J" | "K" | "L" | "M" | "N" | "O" | "P" | "Q" | "R" | "S" | "T" | "U" | "V" | "W" | "X" | "Y" | "Z" ;
+symbol = "_" | "-";
+
+hex_addr_short = "$", hex_digit, hex_digit;
+hex_addr_long = hex_addr_short, hex_digit, hex_digit;
+hex_value = "#", "$", hex_digit, hex_digit;
+label_name = [ "_" ], { letter | digit | symbol };
+
+opcode = letter, letter, letter;
+arg = label_name | hex_value | hex_addr_long | hex_addr_short;
+
+label_def = label_name, ":";
+instruction = margin, opcode, [ " ", arg ];

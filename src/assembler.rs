@@ -1,4 +1,4 @@
-use crate::{parser,opcodes,addressing_modes,Context};
+use crate::{addressing_modes, opcodes, parser, Context};
 
 pub fn assemble(ctx: &mut Context) {
     for token in ctx.tokens {
@@ -18,7 +18,7 @@ pub fn assemble(ctx: &mut Context) {
                 println!("{:02X?}", hex);
             }
             parser::LineData::Macro(r#macro) => {
-                ctx.hex.push(&r#macro.bytes);
+                //ctx.hex.push(&r#macro.bytes);
             }
             _ => (),
         }
