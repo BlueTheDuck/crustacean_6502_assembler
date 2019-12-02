@@ -14,3 +14,5 @@ arg = label_name | hex_value | hex_addr_long | hex_addr_short;
 
 label_def = label_name, ":";
 instruction = margin, opcode, [ " ", arg ];
+
+line = label_def | instruction;
