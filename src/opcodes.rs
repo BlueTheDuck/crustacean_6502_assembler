@@ -13,6 +13,7 @@ use super::addressing_modes::AddressingMode;
     }
     return None;
 } */
+#[derive(Debug, PartialEq)]
 pub enum OpcodeName {
     ADC,
     AND,
@@ -72,65 +73,65 @@ pub enum OpcodeName {
     TYA,
 }
 impl OpcodeName {
-    fn new(string: &str) -> Option<OpcodeName> {
-        match string {
-            _ => None,
-            "ADC" => Some(OpcodeName::ADC),
-            "AND" => Some(OpcodeName::AND),
-            "ASL" => Some(OpcodeName::ASL),
-            "BCC" => Some(OpcodeName::BCC),
-            "BCS" => Some(OpcodeName::BCS),
-            "BEQ" => Some(OpcodeName::BEQ),
-            "BIT" => Some(OpcodeName::BIT),
-            "BMI" => Some(OpcodeName::BMI),
-            "BNE" => Some(OpcodeName::BNE),
-            "BPL" => Some(OpcodeName::BPL),
-            "BRK" => Some(OpcodeName::BRK),
-            "BVC" => Some(OpcodeName::BVC),
-            "BVS" => Some(OpcodeName::BVS),
-            "CLC" => Some(OpcodeName::CLC),
-            "CLD" => Some(OpcodeName::CLD),
-            "CLI" => Some(OpcodeName::CLI),
-            "CLV" => Some(OpcodeName::CLV),
-            "CMP" => Some(OpcodeName::CMP),
-            "CPX" => Some(OpcodeName::CPX),
-            "CPY" => Some(OpcodeName::CPY),
-            "DEC" => Some(OpcodeName::DEC),
-            "DEX" => Some(OpcodeName::DEX),
-            "DEY" => Some(OpcodeName::DEY),
-            "EOR" => Some(OpcodeName::EOR),
-            "INC" => Some(OpcodeName::INC),
-            "INX" => Some(OpcodeName::INX),
-            "INY" => Some(OpcodeName::INY),
-            "JMP" => Some(OpcodeName::JMP),
-            "JSR" => Some(OpcodeName::JSR),
-            "LDA" => Some(OpcodeName::LDA),
-            "LDX" => Some(OpcodeName::LDX),
-            "LDY" => Some(OpcodeName::LDY),
-            "LSR" => Some(OpcodeName::LSR),
-            "NOP" => Some(OpcodeName::NOP),
-            "ORA" => Some(OpcodeName::ORA),
-            "PHA" => Some(OpcodeName::PHA),
-            "PHP" => Some(OpcodeName::PHP),
-            "PLA" => Some(OpcodeName::PLA),
-            "PLP" => Some(OpcodeName::PLP),
-            "ROL" => Some(OpcodeName::ROL),
-            "ROR" => Some(OpcodeName::ROR),
-            "RTI" => Some(OpcodeName::RTI),
-            "RTS" => Some(OpcodeName::RTS),
-            "SBC" => Some(OpcodeName::SBC),
-            "SEC" => Some(OpcodeName::SEC),
-            "SED" => Some(OpcodeName::SED),
-            "SEI" => Some(OpcodeName::SEI),
-            "STA" => Some(OpcodeName::STA),
-            "STX" => Some(OpcodeName::STX),
-            "STY" => Some(OpcodeName::STY),
-            "TAX" => Some(OpcodeName::TAX),
-            "TAY" => Some(OpcodeName::TAY),
-            "TSX" => Some(OpcodeName::TSX),
-            "TXA" => Some(OpcodeName::TXA),
-            "TXS" => Some(OpcodeName::TXS),
-            "TYA" => Some(OpcodeName::TYA),
+    pub fn new<'s, S: std::ops::Deref<Target = &'s str>>(string: &S) -> Result<OpcodeName, ()> {
+        match **string {
+            "ADC" => Ok(OpcodeName::ADC),
+            "AND" => Ok(OpcodeName::AND),
+            "ASL" => Ok(OpcodeName::ASL),
+            "BCC" => Ok(OpcodeName::BCC),
+            "BCS" => Ok(OpcodeName::BCS),
+            "BEQ" => Ok(OpcodeName::BEQ),
+            "BIT" => Ok(OpcodeName::BIT),
+            "BMI" => Ok(OpcodeName::BMI),
+            "BNE" => Ok(OpcodeName::BNE),
+            "BPL" => Ok(OpcodeName::BPL),
+            "BRK" => Ok(OpcodeName::BRK),
+            "BVC" => Ok(OpcodeName::BVC),
+            "BVS" => Ok(OpcodeName::BVS),
+            "CLC" => Ok(OpcodeName::CLC),
+            "CLD" => Ok(OpcodeName::CLD),
+            "CLI" => Ok(OpcodeName::CLI),
+            "CLV" => Ok(OpcodeName::CLV),
+            "CMP" => Ok(OpcodeName::CMP),
+            "CPX" => Ok(OpcodeName::CPX),
+            "CPY" => Ok(OpcodeName::CPY),
+            "DEC" => Ok(OpcodeName::DEC),
+            "DEX" => Ok(OpcodeName::DEX),
+            "DEY" => Ok(OpcodeName::DEY),
+            "EOR" => Ok(OpcodeName::EOR),
+            "INC" => Ok(OpcodeName::INC),
+            "INX" => Ok(OpcodeName::INX),
+            "INY" => Ok(OpcodeName::INY),
+            "JMP" => Ok(OpcodeName::JMP),
+            "JSR" => Ok(OpcodeName::JSR),
+            "LDA" => Ok(OpcodeName::LDA),
+            "LDX" => Ok(OpcodeName::LDX),
+            "LDY" => Ok(OpcodeName::LDY),
+            "LSR" => Ok(OpcodeName::LSR),
+            "NOP" => Ok(OpcodeName::NOP),
+            "ORA" => Ok(OpcodeName::ORA),
+            "PHA" => Ok(OpcodeName::PHA),
+            "PHP" => Ok(OpcodeName::PHP),
+            "PLA" => Ok(OpcodeName::PLA),
+            "PLP" => Ok(OpcodeName::PLP),
+            "ROL" => Ok(OpcodeName::ROL),
+            "ROR" => Ok(OpcodeName::ROR),
+            "RTI" => Ok(OpcodeName::RTI),
+            "RTS" => Ok(OpcodeName::RTS),
+            "SBC" => Ok(OpcodeName::SBC),
+            "SEC" => Ok(OpcodeName::SEC),
+            "SED" => Ok(OpcodeName::SED),
+            "SEI" => Ok(OpcodeName::SEI),
+            "STA" => Ok(OpcodeName::STA),
+            "STX" => Ok(OpcodeName::STX),
+            "STY" => Ok(OpcodeName::STY),
+            "TAX" => Ok(OpcodeName::TAX),
+            "TAY" => Ok(OpcodeName::TAY),
+            "TSX" => Ok(OpcodeName::TSX),
+            "TXA" => Ok(OpcodeName::TXA),
+            "TXS" => Ok(OpcodeName::TXS),
+            "TYA" => Ok(OpcodeName::TYA),
+            _ => Err(()),
         }
     }
 }
@@ -849,4 +850,16 @@ pub const OPCODES: [Option<Opcode>; 256] = [
     }),
     None,
 ];
-//Opcode {name: "LDA",addr_mode: AddressingMode},
+
+mod test {
+    use super::OpcodeName;
+    #[test]
+    fn test_opcode_name() {
+        let strings = vec![("LDA", true), ("STA", true), ("JMP", true), ("xd", false)];
+        for (string, is_ok) in strings.iter() {
+            let res = OpcodeName::new(&string);
+            println!("{} -> {:?}", string, res);
+            assert_eq!(res.is_ok(), *is_ok);
+        }
+    }
+}
