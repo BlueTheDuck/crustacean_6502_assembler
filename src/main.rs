@@ -19,7 +19,6 @@ struct Args {
 mod addressing_modes;
 mod opcodes;
 mod parser;
-mod tests;
 
 fn main() {
     let args = Args::from_args();
@@ -45,8 +44,10 @@ fn main() {
             .expect(&format!("Could not open file {:?}", &args.input)),
     );
 
-    for line in input_buf.lines().map(|v| v.unwrap()) {
-        let line: String = line;
+    for line in input_buf.lines().map(|v: Result<String, _>| v.unwrap()) {
+        let line: &[u8] = line.as_bytes();
+        let res = parser::parse_line(line);
+        println!("{:?}", res);
     }
 
     /* let mut ctx = Context::new();

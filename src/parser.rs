@@ -71,6 +71,7 @@ named!(
 );
 // #endregion
 // #region Types
+// TODO: Improve marign recognition
 named!(margin<&[u8]>, take_while!(character::is_space));
 fn parse_argument(input: &[u8]) -> IResult<&[u8], Option<ArgumentType>> {
     if input.len() == 0 {
@@ -110,7 +111,7 @@ named!(
 );
 // #endregion
 named!(
-    line<LineType>,
+    pub parse_line<LineType>,
     alt!(
         label_def => { |r|LineType::LabelDef(r) }|
         parse_opcode_line => { |r|LineType::Opcode(r) }
@@ -119,7 +120,9 @@ named!(
 
 mod tests {
     use super::ArgumentType;
-    use super::{argument, hex_addr_long, hex_addr_short, label_name, parse_opcode_line};
+    use super::{
+        argument, hex_addr_long, hex_addr_short, label_name, parse_line, parse_opcode_line,
+    };
     use nom::IResult;
     // #region Arguements
     #[test]
@@ -194,10 +197,9 @@ mod tests {
     }
     #[test]
     fn test_line() {
-        use super::line;
         let code: &str = include_str!("../assembly/custom.asm");
         for l in code.lines() {
-            println!("{:X?}", line(l.as_bytes()));
+            println!("{:X?}", parse_line(l.as_bytes()));
         }
     }
 }
