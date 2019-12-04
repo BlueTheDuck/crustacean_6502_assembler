@@ -46,8 +46,8 @@ fn main() {
 
     for line in input_buf.lines().map(|v: Result<String, _>| v.unwrap()) {
         let line: &[u8] = line.as_bytes();
-        let res = parser::parse_line(line);
-        println!("{:?}", res);
+        let (rest, result) = parser::parse_line(line).expect("lol error");
+        println!("{:?}", result);
     }
 
     /* let mut ctx = Context::new();

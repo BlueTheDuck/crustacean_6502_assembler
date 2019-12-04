@@ -1,4 +1,5 @@
 use crate::nom;
+use crate::opcodes::OpcodeType;
 use nom::IResult;
 use nom::{bytes::streaming, character, combinator};
 use std::str::from_utf8;
@@ -11,13 +12,13 @@ pub enum ArgumentType {
     Label(String),
 }
 #[derive(Debug)]
-pub struct Opcode<'a> {
-    name: &'a str,
+pub struct Opcode {
+    name: OpcodeType,
     arg: Option<ArgumentType>,
 }
 #[derive(Debug)]
-pub enum LineType<'a> {
-    Opcode(Opcode<'a>),
+pub enum LineType {
+    Opcode(Opcode),
     LabelDef(String),
 }
 
@@ -90,14 +91,13 @@ fn parse_argument(input: &[u8]) -> IResult<&[u8], Option<ArgumentType>> {
 fn parse_opcode_line(input: &[u8]) -> IResult<&[u8], Opcode> {
     let (rest, _) = margin(input)?;
     let (rest, name) = streaming::take_while_m_n(3, 3, character::is_alphabetic)(rest)?;
+    let name = match OpcodeType::identify(&&from_utf8(name).expect("Couldn't convert [u8] to str"))
+    {
+        Ok(v) => v,
+        Err(e) => return Err(nom::Err::Failure((rest, nom::error::ErrorKind::MapRes))),
+    };
     let (rest, arg) = parse_argument(rest)?;
-    Ok((
-        rest,
-        Opcode {
-            name: from_utf8(name).unwrap(),
-            arg,
-        },
-    ))
+    Ok((rest, Opcode { name, arg }))
 }
 named!(
     label_def<String>,
