@@ -20,7 +20,7 @@ pub enum AddressingMode {
     ABS,   // LDA $1234
     ABSX,  // STA $3000,X
     ABSY,  // AND $4000,Y
-    IMM,   // LDA #10
+    IMM,   // LDA #$10
     IMPL,  // CLC
     IND,   // JMP ($FFFC)
     INDX,  // LDA ($40,X)

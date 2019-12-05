@@ -1,16 +1,25 @@
+use crate::addressing_modes::AddressingMode;
 use crate::nom;
 use crate::opcodes::OpcodeType;
 use nom::IResult;
 use nom::{bytes::streaming, character, combinator};
 use std::str::from_utf8;
 
-#[derive(PartialEq, Debug)]
+#[derive(Debug)]
+enum Value {
+    Short(u8),
+    Long(u16),
+    Label(String),
+}
+type ArgumentType = (AddressingMode, Value);
+
+/* #[derive(PartialEq, Debug)]
 pub enum ArgumentType {
     AddrShort(u8),
     AddrLong(u16),
     Value(u8),
     Label(String),
-}
+} */
 #[derive(Debug)]
 pub struct Opcode {
     name: OpcodeType,
@@ -34,7 +43,7 @@ named!(
         char!('$')
             >> value: map_res!(take!(2), |s| u8_to_hex(s))
             >> eof!()
-            >> (ArgumentType::AddrShort(value as u8))
+            >> ((AddressingMode::ZPG, Value::Short(value as u8)))
     )
 );
 named!(
@@ -43,7 +52,7 @@ named!(
         char!('$')
             >> value: map_res!(take!(4), |s| u8_to_hex(s))
             >> eof!()
-            >> (ArgumentType::AddrLong(value as u16))
+            >> ((AddressingMode::ABS, Value::Long(value as u16)))
     )
 );
 named!(
@@ -53,7 +62,7 @@ named!(
             >> char!('$')
             >> value: map_res!(take!(2), |s| u8_to_hex(s))
             >> eof!()
-            >> (ArgumentType::Value(value as u8))
+            >> ((AddressingMode::IMM, Value::Short(value as u8)))
     )
 );
 // TODO: Improve label recognition
@@ -63,7 +72,7 @@ named!(
         value: map_res!(character::complete::alphanumeric1, |v: &[u8]| {
             String::from_utf8(v.to_vec())
         }) >> eof!()
-            >> (ArgumentType::Label(value))
+            >> ((AddressingMode::ABS, Value::Label(value)))
     )
 );
 named!(
@@ -79,7 +88,7 @@ fn parse_argument(input: &[u8]) -> IResult<&[u8], Option<ArgumentType>> {
         return Ok((input, None));
     }
     let (rest, _) = character::streaming::char(' ')(input)?;
-    if (rest.len() == 0) {
+    if rest.len() == 0 {
         return Ok((rest, None));
     }
     let (rest, arg) = argument(rest)?;
