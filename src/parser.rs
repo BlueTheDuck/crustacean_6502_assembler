@@ -2,10 +2,10 @@ use crate::addressing_modes::AddressingMode;
 use crate::nom;
 use crate::opcodes::OpcodeType;
 use nom::IResult;
-use nom::{bytes::streaming, character, combinator};
+use nom::{bytes::complete as bytes, character, combinator};
 use std::str::from_utf8;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum Value {
     Short(u8),
     Long(u16),
@@ -35,89 +35,76 @@ fn u8_to_hex(v: &[u8]) -> Result<usize, ()> {
     let text = from_utf8(v).map_err(|_| ())?;
     usize::from_str_radix(text, 16).map_err(|_| ())
 }
-
 // #region Arguments
-named!(
-    hex_addr_short<ArgumentType>,
-    do_parse!(
-        char!('$')
-            >> value: map_res!(take!(2), |s| u8_to_hex(s))
-            >> eof!()
-            >> ((AddressingMode::ZPG, Value::Short(value as u8)))
-    )
-);
-named!(
-    hex_addr_long<ArgumentType>,
-    do_parse!(
-        char!('$')
-            >> value: map_res!(take!(4), |s| u8_to_hex(s))
-            >> eof!()
-            >> ((AddressingMode::ABS, Value::Long(value as u16)))
-    )
-);
-named!(
-    hex_value<ArgumentType>,
-    do_parse!(
-        char!('#')
-            >> char!('$')
-            >> value: map_res!(take!(2), |s| u8_to_hex(s))
-            >> eof!()
-            >> ((AddressingMode::IMM, Value::Short(value as u8)))
-    )
-);
+named!(eof, eof!());
+
+fn hex_addr_short(input: &[u8]) -> IResult<&[u8], ArgumentType> {
+    let (input, _) = character::streaming::char('$')(input)?;
+    let (input, value) = combinator::map_res(bytes::take(2usize), u8_to_hex)(input)?;
+    let (input, _) = eof(input)?;
+    Ok((input, (AddressingMode::ZPG, Value::Short(value as u8))))
+}
+fn hex_addr_long(input: &[u8]) -> IResult<&[u8], ArgumentType> {
+    let (input, _) = character::streaming::char('$')(input)?;
+    let (input, value) = combinator::map_res(bytes::take(4usize), u8_to_hex)(input)?;
+    let (input, _) = eof(input)?;
+    Ok((input, (AddressingMode::ABS, Value::Long(value as u16))))
+}
+fn hex_value(input: &[u8]) -> IResult<&[u8], ArgumentType> {
+    let (input, _) = character::streaming::char('#')(input)?;
+    let (input, _) = character::streaming::char('$')(input)?;
+    let (input, value) = combinator::map_res(bytes::take(2usize), u8_to_hex)(input)?;
+    let (input, _) = eof(input)?;
+    Ok((input, (AddressingMode::IMM, Value::Short(value as u8))))
+}
 // TODO: Improve label recognition
-named!(
-    label_name<ArgumentType>,
-    do_parse!(
-        value: map_res!(character::complete::alphanumeric1, |v: &[u8]| {
-            String::from_utf8(v.to_vec())
-        }) >> eof!()
-            >> ((AddressingMode::ABS, Value::Label(value)))
-    )
-);
-named!(
-    argument<ArgumentType>,
-    do_parse!(ret: alt!(hex_addr_short | hex_addr_long | hex_value | label_name) >> (ret))
-);
+fn label_name(input: &[u8]) -> IResult<&[u8], ArgumentType> {
+    let (input, value) = combinator::map_res(character::complete::alphanumeric1, |s: &[u8]| {
+        String::from_utf8(s.to_vec())
+    })(input)?;
+    let (input, _) = eof(input)?;
+    Ok((input, (AddressingMode::ABS, Value::Label(value))))
+}
+fn argument(input: &[u8]) -> IResult<&[u8], ArgumentType> {
+    nom::branch::alt((hex_addr_short, hex_addr_long, hex_value, label_name))(input)
+}
 // #endregion
 // #region Types
 // TODO: Improve marign recognition
 named!(margin<&[u8]>, take_while!(character::is_space));
 fn parse_argument(input: &[u8]) -> IResult<&[u8], Option<ArgumentType>> {
-    if input.len() == 0 {
+    if input.is_empty() {
         return Ok((input, None));
     }
-    let (rest, _) = character::streaming::char(' ')(input)?;
-    if rest.len() == 0 {
-        return Ok((rest, None));
+    let (input, _) = character::streaming::char(' ')(input)?;
+    if input.is_empty() {
+        return Ok((input, None));
     }
-    let (rest, arg) = argument(rest)?;
-    if rest.len() != 0 {
+    let (input, arg) = argument(input)?;
+    if !input.is_empty() {
         return Err(nom::Err::Error((input, nom::error::ErrorKind::TooLarge)));
     }
-    Ok((rest, Some(arg)))
+    Ok((input, Some(arg)))
 }
 fn parse_opcode_line(input: &[u8]) -> IResult<&[u8], Opcode> {
-    let (rest, _) = margin(input)?;
-    let (rest, name) = streaming::take_while_m_n(3, 3, character::is_alphabetic)(rest)?;
+    let (input, _) = margin(input)?;
+    let (input, name) = bytes::take_while_m_n(3, 3, character::is_alphabetic)(input)?;
     let name = match OpcodeType::identify(&&from_utf8(name).expect("Couldn't convert [u8] to str"))
     {
         Ok(v) => v,
-        Err(e) => return Err(nom::Err::Failure((rest, nom::error::ErrorKind::MapRes))),
+        Err(_) => return Err(nom::Err::Failure((input, nom::error::ErrorKind::MapRes))),
     };
-    let (rest, arg) = parse_argument(rest)?;
-    Ok((rest, Opcode { name, arg }))
+    let (input, arg) = parse_argument(input)?;
+    Ok((input, Opcode { name, arg }))
 }
-named!(
-    label_def<String>,
-    do_parse!(
-        name: map_res!(character::complete::alphanumeric1, |v: &[u8]| {
-            String::from_utf8(v.to_vec())
-        }) >> char!(':')
-            >> eof!()
-            >> (name)
-    )
-);
+fn label_def(input: &[u8]) -> IResult<&[u8], String> {
+    let (input, value) = combinator::map_res(character::complete::alphanumeric1, |v: &[u8]| {
+        String::from_utf8(v.to_vec())
+    })(input)?;
+    let (input, _) = character::complete::char(':')(input)?;
+    let (input, _) = eof(input)?;
+    Ok((input, value))
+}
 // #endregion
 named!(
     pub parse_line<LineType>,
@@ -129,32 +116,50 @@ named!(
 
 mod tests {
     use super::ArgumentType;
+    use super::Value;
     use super::{
         argument, hex_addr_long, hex_addr_short, label_name, parse_line, parse_opcode_line,
     };
+    use crate::addressing_modes::AddressingMode;
     use nom::IResult;
     // #region Arguements
     #[test]
     fn test_hex_addr_short() {
-        let res: IResult<&[u8], ArgumentType> = hex_addr_short(b"$23");
-        assert_eq!(res, Ok((&[][..], ArgumentType::AddrShort(0x23))));
-        let res: IResult<&[u8], ArgumentType> = hex_addr_short(b"bd23");
+        let (rest, ag_type): (&[u8], ArgumentType) =
+            hex_addr_short(b"$23").expect("This should have been an Ok");
+        assert_eq!(rest, &[][..]);
+        assert_eq!(ag_type, (AddressingMode::ZPG, Value::Short(0x23)));
+
+        let err: nom::Err<(&[u8], nom::error::ErrorKind)> = hex_addr_short(b"bd23")
+            .err()
+            .expect("This should have been an Err");
         assert_eq!(
-            res,
-            Err(nom::Err::Error((&b"bd23"[..], nom::error::ErrorKind::Char)))
+            err,
+            nom::Err::Error((&b"bd23"[..], nom::error::ErrorKind::Char))
         );
-        let res: IResult<&[u8], ArgumentType> = hex_addr_short(b"");
-        assert_eq!(res, Err(nom::Err::Incomplete(nom::Needed::Size(1))));
-        let res: IResult<&[u8], ArgumentType> = hex_addr_short(b"$2334");
+
+        let err: nom::Err<(&[u8], nom::error::ErrorKind)> = hex_addr_short(b"")
+            .err()
+            .expect("This should have been an Err");
+        assert_eq!(err, nom::Err::Incomplete(nom::Needed::Size(1)));
+
+        let err: nom::Err<(&[u8], nom::error::ErrorKind)> = hex_addr_short(b"$2345")
+            .err()
+            .expect("This should have been an Err");
         assert_eq!(
-            res,
-            Err(nom::Err::Error((&b"34"[..], nom::error::ErrorKind::Eof)))
+            err,
+            nom::Err::Error((&[52, 53][..], nom::error::ErrorKind::Eof))
         );
     }
     #[test]
     fn test_hex_addr_long() {
-        let res: IResult<&[u8], ArgumentType> = hex_addr_long(b"$23");
-        assert_eq!(res, Err(nom::Err::Incomplete(nom::Needed::Size(4))));
+        let res: nom::Err<(&[u8], nom::error::ErrorKind)> = hex_addr_long(b"$23")
+            .err()
+            .expect("This should have errored");
+        assert_eq!(
+            res,
+            nom::Err::Error((&[50, 51][..], nom::error::ErrorKind::Eof))
+        );
         let res: IResult<&[u8], ArgumentType> = hex_addr_long(b"bd23");
         assert_eq!(
             res,
@@ -163,7 +168,10 @@ mod tests {
         let res: IResult<&[u8], ArgumentType> = hex_addr_long(b"");
         assert_eq!(res, Err(nom::Err::Incomplete(nom::Needed::Size(1))));
         let res: IResult<&[u8], ArgumentType> = hex_addr_long(b"$2334");
-        assert_eq!(res, Ok((&[][..], ArgumentType::AddrLong(0x2334))));
+        assert_eq!(
+            res,
+            Ok((&[][..], (AddressingMode::ABS, Value::Long(0x2334))))
+        );
         let res: IResult<&[u8], ArgumentType> = hex_addr_long(b"$2334sd4");
         assert_eq!(
             res,
@@ -178,12 +186,17 @@ mod tests {
     #[test]
     fn test_argument() {
         let tests = [
-            (&b"#$AD"[..], ArgumentType::Value(0xAD)),
-            (&b"$ADDE"[..], ArgumentType::AddrLong(0xADDE)),
-            (&b"$AD"[..], ArgumentType::AddrShort(0xAD)),
-            (&b"Hello"[..], ArgumentType::Label("Hello".to_string())),
+            (&b"#$AD"[..], (AddressingMode::IMM, Value::Short(0xAD))),
+            (&b"$ADDE"[..], (AddressingMode::ABS, Value::Long(0xADDE))),
+            (&b"$AD"[..], (AddressingMode::ZPG, Value::Short(0xAD))),
+            (
+                &b"Hello"[..],
+                (AddressingMode::ABS, Value::Label("Hello".to_string())),
+            ),
         ];
         for test in tests.iter() {
+            println!("{:X?}, {:?} ", test.0, test.1);
+            println!("{:X?}", argument(test.0));
             assert_eq!(argument(test.0).ok().unwrap().1, test.1);
         }
     }
