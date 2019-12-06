@@ -1,6 +1,6 @@
 use super::addressing_modes::AddressingMode;
 
-pub fn get_code(name: &str, addr_mode: AddressingMode) -> Option<usize> {
+/* pub fn get_code(name: &str, addr_mode: AddressingMode) -> Option<usize> {
     for (i, opcode) in OPCODES.iter().enumerate() {
         match opcode {
             None => continue,
@@ -12,721 +12,862 @@ pub fn get_code(name: &str, addr_mode: AddressingMode) -> Option<usize> {
         }
     }
     return None;
+} */
+#[derive(Debug, PartialEq)]
+pub enum OpcodeType {
+    ADC,
+    AND,
+    ASL,
+    BCC, // Branch ops
+    BCS, // Branch ops
+    BEQ, // Branch ops
+    BIT,
+    BMI, // Branch ops
+    BNE, // Branch ops
+    BPL, // Branch ops
+    BRK,
+    BVC, // Branch ops
+    BVS, // Branch ops
+    CLC,
+    CLD,
+    CLI,
+    CLV,
+    CMP,
+    CPX,
+    CPY,
+    DEC,
+    DEX,
+    DEY,
+    EOR,
+    INC,
+    INX,
+    INY,
+    JMP,
+    JSR,
+    LDA,
+    LDX,
+    LDY,
+    LSR,
+    NOP,
+    ORA,
+    PHA,
+    PHP,
+    PLA,
+    PLP,
+    ROL,
+    ROR,
+    RTI,
+    RTS,
+    SBC,
+    SEC,
+    SED,
+    SEI,
+    STA,
+    STX,
+    STY,
+    TAX,
+    TAY,
+    TSX,
+    TXA,
+    TXS,
+    TYA,
 }
-
-pub struct Opcode {
-    name: &'static str,
+impl OpcodeType {
+    pub fn identify<'s, S: std::ops::Deref<Target = &'s str>>(
+        string: &S,
+    ) -> Result<OpcodeType, ()> {
+        match **string {
+            "ADC" => Ok(OpcodeType::ADC),
+            "AND" => Ok(OpcodeType::AND),
+            "ASL" => Ok(OpcodeType::ASL),
+            "BCC" => Ok(OpcodeType::BCC),
+            "BCS" => Ok(OpcodeType::BCS),
+            "BEQ" => Ok(OpcodeType::BEQ),
+            "BIT" => Ok(OpcodeType::BIT),
+            "BMI" => Ok(OpcodeType::BMI),
+            "BNE" => Ok(OpcodeType::BNE),
+            "BPL" => Ok(OpcodeType::BPL),
+            "BRK" => Ok(OpcodeType::BRK),
+            "BVC" => Ok(OpcodeType::BVC),
+            "BVS" => Ok(OpcodeType::BVS),
+            "CLC" => Ok(OpcodeType::CLC),
+            "CLD" => Ok(OpcodeType::CLD),
+            "CLI" => Ok(OpcodeType::CLI),
+            "CLV" => Ok(OpcodeType::CLV),
+            "CMP" => Ok(OpcodeType::CMP),
+            "CPX" => Ok(OpcodeType::CPX),
+            "CPY" => Ok(OpcodeType::CPY),
+            "DEC" => Ok(OpcodeType::DEC),
+            "DEX" => Ok(OpcodeType::DEX),
+            "DEY" => Ok(OpcodeType::DEY),
+            "EOR" => Ok(OpcodeType::EOR),
+            "INC" => Ok(OpcodeType::INC),
+            "INX" => Ok(OpcodeType::INX),
+            "INY" => Ok(OpcodeType::INY),
+            "JMP" => Ok(OpcodeType::JMP),
+            "JSR" => Ok(OpcodeType::JSR),
+            "LDA" => Ok(OpcodeType::LDA),
+            "LDX" => Ok(OpcodeType::LDX),
+            "LDY" => Ok(OpcodeType::LDY),
+            "LSR" => Ok(OpcodeType::LSR),
+            "NOP" => Ok(OpcodeType::NOP),
+            "ORA" => Ok(OpcodeType::ORA),
+            "PHA" => Ok(OpcodeType::PHA),
+            "PHP" => Ok(OpcodeType::PHP),
+            "PLA" => Ok(OpcodeType::PLA),
+            "PLP" => Ok(OpcodeType::PLP),
+            "ROL" => Ok(OpcodeType::ROL),
+            "ROR" => Ok(OpcodeType::ROR),
+            "RTI" => Ok(OpcodeType::RTI),
+            "RTS" => Ok(OpcodeType::RTS),
+            "SBC" => Ok(OpcodeType::SBC),
+            "SEC" => Ok(OpcodeType::SEC),
+            "SED" => Ok(OpcodeType::SED),
+            "SEI" => Ok(OpcodeType::SEI),
+            "STA" => Ok(OpcodeType::STA),
+            "STX" => Ok(OpcodeType::STX),
+            "STY" => Ok(OpcodeType::STY),
+            "TAX" => Ok(OpcodeType::TAX),
+            "TAY" => Ok(OpcodeType::TAY),
+            "TSX" => Ok(OpcodeType::TSX),
+            "TXA" => Ok(OpcodeType::TXA),
+            "TXS" => Ok(OpcodeType::TXS),
+            "TYA" => Ok(OpcodeType::TYA),
+            _ => Err(()),
+        }
+    }
+    pub fn is_branch_op(&self) -> bool {
+        use OpcodeType::*;
+        let branch_ops = [BCC, BCS, BEQ, BMI, BNE, BPL, BVC, BVS];
+        branch_ops.contains(self)
+    }
+}
+pub struct OpcodeData {
+    name: OpcodeType,
     addr_mode: AddressingMode,
 }
-pub const OPCODES: [Option<Opcode>; 256] = [
-    Some(Opcode {
-        name: "BRK",
+
+pub const OPCODES: [Option<OpcodeData>; 256] = [
+    Some(OpcodeData {
+        name: OpcodeType::BRK,
         addr_mode: AddressingMode::IMPL,
     }),
-    Some(Opcode {
-        name: "ORA",
+    Some(OpcodeData {
+        name: OpcodeType::ORA,
         addr_mode: AddressingMode::INDX,
     }),
     None,
     None,
     None,
-    Some(Opcode {
-        name: "ORA",
+    Some(OpcodeData {
+        name: OpcodeType::ORA,
         addr_mode: AddressingMode::ZPG,
     }),
-    Some(Opcode {
-        name: "ASL",
+    Some(OpcodeData {
+        name: OpcodeType::ASL,
         addr_mode: AddressingMode::ZPG,
     }),
     None,
-    Some(Opcode {
-        name: "PHP",
+    Some(OpcodeData {
+        name: OpcodeType::PHP,
         addr_mode: AddressingMode::IMPL,
     }),
-    Some(Opcode {
-        name: "ORA",
+    Some(OpcodeData {
+        name: OpcodeType::ORA,
         addr_mode: AddressingMode::IMM,
     }),
-    Some(Opcode {
-        name: "ASL",
+    Some(OpcodeData {
+        name: OpcodeType::ASL,
         addr_mode: AddressingMode::A,
     }),
     None,
     None,
-    Some(Opcode {
-        name: "ORA",
+    Some(OpcodeData {
+        name: OpcodeType::ORA,
         addr_mode: AddressingMode::ABS,
     }),
-    Some(Opcode {
-        name: "ASL",
+    Some(OpcodeData {
+        name: OpcodeType::ASL,
         addr_mode: AddressingMode::ABS,
     }),
     None,
-    Some(Opcode {
-        name: "BPL",
+    Some(OpcodeData {
+        name: OpcodeType::BPL,
         addr_mode: AddressingMode::REL,
     }),
-    Some(Opcode {
-        name: "ORA",
+    Some(OpcodeData {
+        name: OpcodeType::ORA,
         addr_mode: AddressingMode::INDY,
     }),
     None,
     None,
     None,
-    Some(Opcode {
-        name: "ORA",
+    Some(OpcodeData {
+        name: OpcodeType::ORA,
         addr_mode: AddressingMode::ZPGX,
     }),
-    Some(Opcode {
-        name: "ASL",
+    Some(OpcodeData {
+        name: OpcodeType::ASL,
         addr_mode: AddressingMode::ZPGX,
     }),
     None,
-    Some(Opcode {
-        name: "CLC",
+    Some(OpcodeData {
+        name: OpcodeType::CLC,
         addr_mode: AddressingMode::IMPL,
     }),
-    Some(Opcode {
-        name: "ORA",
+    Some(OpcodeData {
+        name: OpcodeType::ORA,
         addr_mode: AddressingMode::ABSY,
     }),
     None,
     None,
     None,
-    Some(Opcode {
-        name: "ORA",
+    Some(OpcodeData {
+        name: OpcodeType::ORA,
         addr_mode: AddressingMode::ABSX,
     }),
-    Some(Opcode {
-        name: "ASL",
+    Some(OpcodeData {
+        name: OpcodeType::ASL,
         addr_mode: AddressingMode::ABSX,
     }),
     None,
-    Some(Opcode {
-        name: "JSR",
+    Some(OpcodeData {
+        name: OpcodeType::JSR,
         addr_mode: AddressingMode::ABS,
     }),
-    Some(Opcode {
-        name: "AND",
+    Some(OpcodeData {
+        name: OpcodeType::AND,
         addr_mode: AddressingMode::INDX,
     }),
     None,
     None,
-    Some(Opcode {
-        name: "BIT",
+    Some(OpcodeData {
+        name: OpcodeType::BIT,
         addr_mode: AddressingMode::ZPG,
     }),
-    Some(Opcode {
-        name: "AND",
+    Some(OpcodeData {
+        name: OpcodeType::AND,
         addr_mode: AddressingMode::ZPG,
     }),
-    Some(Opcode {
-        name: "ROL",
+    Some(OpcodeData {
+        name: OpcodeType::ROL,
         addr_mode: AddressingMode::ZPG,
     }),
     None,
-    Some(Opcode {
-        name: "PLP",
+    Some(OpcodeData {
+        name: OpcodeType::PLP,
         addr_mode: AddressingMode::IMPL,
     }),
-    Some(Opcode {
-        name: "AND",
+    Some(OpcodeData {
+        name: OpcodeType::AND,
         addr_mode: AddressingMode::IMM,
     }),
-    Some(Opcode {
-        name: "ROL",
+    Some(OpcodeData {
+        name: OpcodeType::ROL,
         addr_mode: AddressingMode::A,
     }),
     None,
-    Some(Opcode {
-        name: "BIT",
+    Some(OpcodeData {
+        name: OpcodeType::BIT,
         addr_mode: AddressingMode::ABS,
     }),
-    Some(Opcode {
-        name: "AND",
+    Some(OpcodeData {
+        name: OpcodeType::AND,
         addr_mode: AddressingMode::ABS,
     }),
-    Some(Opcode {
-        name: "ROL",
+    Some(OpcodeData {
+        name: OpcodeType::ROL,
         addr_mode: AddressingMode::ABS,
     }),
     None,
-    Some(Opcode {
-        name: "BMI",
+    Some(OpcodeData {
+        name: OpcodeType::BMI,
         addr_mode: AddressingMode::REL,
     }),
-    Some(Opcode {
-        name: "AND",
+    Some(OpcodeData {
+        name: OpcodeType::AND,
         addr_mode: AddressingMode::INDY,
     }),
     None,
     None,
     None,
-    Some(Opcode {
-        name: "AND",
+    Some(OpcodeData {
+        name: OpcodeType::AND,
         addr_mode: AddressingMode::ZPGX,
     }),
-    Some(Opcode {
-        name: "ROL",
+    Some(OpcodeData {
+        name: OpcodeType::ROL,
         addr_mode: AddressingMode::ZPGX,
     }),
     None,
-    Some(Opcode {
-        name: "SEC",
+    Some(OpcodeData {
+        name: OpcodeType::SEC,
         addr_mode: AddressingMode::IMPL,
     }),
-    Some(Opcode {
-        name: "AND",
+    Some(OpcodeData {
+        name: OpcodeType::AND,
         addr_mode: AddressingMode::ABSY,
     }),
     None,
     None,
     None,
-    Some(Opcode {
-        name: "AND",
+    Some(OpcodeData {
+        name: OpcodeType::AND,
         addr_mode: AddressingMode::ABSX,
     }),
-    Some(Opcode {
-        name: "ROL",
+    Some(OpcodeData {
+        name: OpcodeType::ROL,
         addr_mode: AddressingMode::ABSX,
     }),
     None,
-    Some(Opcode {
-        name: "RTI",
+    Some(OpcodeData {
+        name: OpcodeType::RTI,
         addr_mode: AddressingMode::IMPL,
     }),
-    Some(Opcode {
-        name: "EOR",
+    Some(OpcodeData {
+        name: OpcodeType::EOR,
         addr_mode: AddressingMode::INDX,
     }),
     None,
     None,
     None,
-    Some(Opcode {
-        name: "EOR",
+    Some(OpcodeData {
+        name: OpcodeType::EOR,
         addr_mode: AddressingMode::ZPG,
     }),
-    Some(Opcode {
-        name: "LSR",
+    Some(OpcodeData {
+        name: OpcodeType::LSR,
         addr_mode: AddressingMode::ZPG,
     }),
     None,
-    Some(Opcode {
-        name: "PHA",
+    Some(OpcodeData {
+        name: OpcodeType::PHA,
         addr_mode: AddressingMode::IMPL,
     }),
-    Some(Opcode {
-        name: "EOR",
+    Some(OpcodeData {
+        name: OpcodeType::EOR,
         addr_mode: AddressingMode::IMM,
     }),
-    Some(Opcode {
-        name: "LSR",
+    Some(OpcodeData {
+        name: OpcodeType::LSR,
         addr_mode: AddressingMode::A,
     }),
     None,
-    Some(Opcode {
-        name: "JMP",
+    Some(OpcodeData {
+        name: OpcodeType::JMP,
         addr_mode: AddressingMode::ABS,
     }),
-    Some(Opcode {
-        name: "EOR",
+    Some(OpcodeData {
+        name: OpcodeType::EOR,
         addr_mode: AddressingMode::ABS,
     }),
-    Some(Opcode {
-        name: "LSR",
+    Some(OpcodeData {
+        name: OpcodeType::LSR,
         addr_mode: AddressingMode::ABS,
     }),
     None,
-    Some(Opcode {
-        name: "BVC",
+    Some(OpcodeData {
+        name: OpcodeType::BVC,
         addr_mode: AddressingMode::REL,
     }),
-    Some(Opcode {
-        name: "EOR",
+    Some(OpcodeData {
+        name: OpcodeType::EOR,
         addr_mode: AddressingMode::INDY,
     }),
     None,
     None,
     None,
-    Some(Opcode {
-        name: "EOR",
+    Some(OpcodeData {
+        name: OpcodeType::EOR,
         addr_mode: AddressingMode::ZPGX,
     }),
-    Some(Opcode {
-        name: "LSR",
+    Some(OpcodeData {
+        name: OpcodeType::LSR,
         addr_mode: AddressingMode::ZPGX,
     }),
     None,
-    Some(Opcode {
-        name: "CLI",
+    Some(OpcodeData {
+        name: OpcodeType::CLI,
         addr_mode: AddressingMode::IMPL,
     }),
-    Some(Opcode {
-        name: "EOR",
+    Some(OpcodeData {
+        name: OpcodeType::EOR,
         addr_mode: AddressingMode::ABSY,
     }),
     None,
     None,
     None,
-    Some(Opcode {
-        name: "EOR",
+    Some(OpcodeData {
+        name: OpcodeType::EOR,
         addr_mode: AddressingMode::ABSX,
     }),
-    Some(Opcode {
-        name: "LSR",
+    Some(OpcodeData {
+        name: OpcodeType::LSR,
         addr_mode: AddressingMode::ABSX,
     }),
     None,
-    Some(Opcode {
-        name: "RTS",
+    Some(OpcodeData {
+        name: OpcodeType::RTS,
         addr_mode: AddressingMode::IMPL,
     }),
-    Some(Opcode {
-        name: "ADC",
+    Some(OpcodeData {
+        name: OpcodeType::ADC,
         addr_mode: AddressingMode::INDX,
     }),
     None,
     None,
     None,
-    Some(Opcode {
-        name: "ADC",
+    Some(OpcodeData {
+        name: OpcodeType::ADC,
         addr_mode: AddressingMode::ZPG,
     }),
-    Some(Opcode {
-        name: "ROR",
+    Some(OpcodeData {
+        name: OpcodeType::ROR,
         addr_mode: AddressingMode::ZPG,
     }),
     None,
-    Some(Opcode {
-        name: "PLA",
+    Some(OpcodeData {
+        name: OpcodeType::PLA,
         addr_mode: AddressingMode::IMPL,
     }),
-    Some(Opcode {
-        name: "ADC",
+    Some(OpcodeData {
+        name: OpcodeType::ADC,
         addr_mode: AddressingMode::IMM,
     }),
-    Some(Opcode {
-        name: "ROR",
+    Some(OpcodeData {
+        name: OpcodeType::ROR,
         addr_mode: AddressingMode::A,
     }),
     None,
-    Some(Opcode {
-        name: "JMP",
+    Some(OpcodeData {
+        name: OpcodeType::JMP,
         addr_mode: AddressingMode::IND,
     }),
-    Some(Opcode {
-        name: "ADC",
+    Some(OpcodeData {
+        name: OpcodeType::ADC,
         addr_mode: AddressingMode::ABS,
     }),
-    Some(Opcode {
-        name: "ROR",
+    Some(OpcodeData {
+        name: OpcodeType::ROR,
         addr_mode: AddressingMode::ABS,
     }),
     None,
-    Some(Opcode {
-        name: "BVS",
+    Some(OpcodeData {
+        name: OpcodeType::BVS,
         addr_mode: AddressingMode::REL,
     }),
-    Some(Opcode {
-        name: "ADC",
+    Some(OpcodeData {
+        name: OpcodeType::ADC,
         addr_mode: AddressingMode::INDY,
     }),
     None,
     None,
     None,
-    Some(Opcode {
-        name: "ADC",
+    Some(OpcodeData {
+        name: OpcodeType::ADC,
         addr_mode: AddressingMode::ZPGX,
     }),
-    Some(Opcode {
-        name: "ROR",
+    Some(OpcodeData {
+        name: OpcodeType::ROR,
         addr_mode: AddressingMode::ZPGX,
     }),
     None,
-    Some(Opcode {
-        name: "SEI",
+    Some(OpcodeData {
+        name: OpcodeType::SEI,
         addr_mode: AddressingMode::IMPL,
     }),
-    Some(Opcode {
-        name: "ADC",
+    Some(OpcodeData {
+        name: OpcodeType::ADC,
         addr_mode: AddressingMode::ABSY,
     }),
     None,
     None,
     None,
-    Some(Opcode {
-        name: "ADC",
+    Some(OpcodeData {
+        name: OpcodeType::ADC,
         addr_mode: AddressingMode::ABSX,
     }),
-    Some(Opcode {
-        name: "ROR",
+    Some(OpcodeData {
+        name: OpcodeType::ROR,
         addr_mode: AddressingMode::ABSX,
     }),
     None,
     None,
-    Some(Opcode {
-        name: "STA",
+    Some(OpcodeData {
+        name: OpcodeType::STA,
         addr_mode: AddressingMode::INDX,
     }),
     None,
     None,
-    Some(Opcode {
-        name: "STY",
+    Some(OpcodeData {
+        name: OpcodeType::STY,
         addr_mode: AddressingMode::ZPG,
     }),
-    Some(Opcode {
-        name: "STA",
+    Some(OpcodeData {
+        name: OpcodeType::STA,
         addr_mode: AddressingMode::ZPG,
     }),
-    Some(Opcode {
-        name: "STX",
+    Some(OpcodeData {
+        name: OpcodeType::STX,
         addr_mode: AddressingMode::ZPG,
     }),
     None,
-    Some(Opcode {
-        name: "DEY",
+    Some(OpcodeData {
+        name: OpcodeType::DEY,
         addr_mode: AddressingMode::IMPL,
     }),
     None,
-    Some(Opcode {
-        name: "TXA",
+    Some(OpcodeData {
+        name: OpcodeType::TXA,
         addr_mode: AddressingMode::IMPL,
     }),
     None,
-    Some(Opcode {
-        name: "STY",
+    Some(OpcodeData {
+        name: OpcodeType::STY,
         addr_mode: AddressingMode::ABS,
     }),
-    Some(Opcode {
-        name: "STA",
+    Some(OpcodeData {
+        name: OpcodeType::STA,
         addr_mode: AddressingMode::ABS,
     }),
-    Some(Opcode {
-        name: "STX",
+    Some(OpcodeData {
+        name: OpcodeType::STX,
         addr_mode: AddressingMode::ABS,
     }),
     None,
-    Some(Opcode {
-        name: "BCC",
+    Some(OpcodeData {
+        name: OpcodeType::BCC,
         addr_mode: AddressingMode::REL,
     }),
-    Some(Opcode {
-        name: "STA",
+    Some(OpcodeData {
+        name: OpcodeType::STA,
         addr_mode: AddressingMode::INDY,
     }),
     None,
     None,
-    Some(Opcode {
-        name: "STY",
+    Some(OpcodeData {
+        name: OpcodeType::STY,
         addr_mode: AddressingMode::ZPGX,
     }),
-    Some(Opcode {
-        name: "STA",
+    Some(OpcodeData {
+        name: OpcodeType::STA,
         addr_mode: AddressingMode::ZPGX,
     }),
-    Some(Opcode {
-        name: "STX",
+    Some(OpcodeData {
+        name: OpcodeType::STX,
         addr_mode: AddressingMode::ZPGY,
     }),
     None,
-    Some(Opcode {
-        name: "TYA",
+    Some(OpcodeData {
+        name: OpcodeType::TYA,
         addr_mode: AddressingMode::IMPL,
     }),
-    Some(Opcode {
-        name: "STA",
+    Some(OpcodeData {
+        name: OpcodeType::STA,
         addr_mode: AddressingMode::ABSY,
     }),
-    Some(Opcode {
-        name: "TXS",
+    Some(OpcodeData {
+        name: OpcodeType::TXS,
         addr_mode: AddressingMode::IMPL,
     }),
     None,
     None,
-    Some(Opcode {
-        name: "STA",
+    Some(OpcodeData {
+        name: OpcodeType::STA,
         addr_mode: AddressingMode::ABSX,
     }),
     None,
     None,
-    Some(Opcode {
-        name: "LDY",
+    Some(OpcodeData {
+        name: OpcodeType::LDY,
         addr_mode: AddressingMode::IMM,
     }),
-    Some(Opcode {
-        name: "LDA",
+    Some(OpcodeData {
+        name: OpcodeType::LDA,
         addr_mode: AddressingMode::INDX,
     }),
-    Some(Opcode {
-        name: "LDX",
+    Some(OpcodeData {
+        name: OpcodeType::LDX,
         addr_mode: AddressingMode::IMM,
     }),
     None,
-    Some(Opcode {
-        name: "LDY",
+    Some(OpcodeData {
+        name: OpcodeType::LDY,
         addr_mode: AddressingMode::ZPG,
     }),
-    Some(Opcode {
-        name: "LDA",
+    Some(OpcodeData {
+        name: OpcodeType::LDA,
         addr_mode: AddressingMode::ZPG,
     }),
-    Some(Opcode {
-        name: "LDX",
+    Some(OpcodeData {
+        name: OpcodeType::LDX,
         addr_mode: AddressingMode::ZPG,
     }),
     None,
-    Some(Opcode {
-        name: "TAY",
+    Some(OpcodeData {
+        name: OpcodeType::TAY,
         addr_mode: AddressingMode::IMPL,
     }),
-    Some(Opcode {
-        name: "LDA",
+    Some(OpcodeData {
+        name: OpcodeType::LDA,
         addr_mode: AddressingMode::IMM,
     }),
-    Some(Opcode {
-        name: "TAX",
+    Some(OpcodeData {
+        name: OpcodeType::TAX,
         addr_mode: AddressingMode::IMPL,
     }),
     None,
-    Some(Opcode {
-        name: "LDY",
+    Some(OpcodeData {
+        name: OpcodeType::LDY,
         addr_mode: AddressingMode::ABS,
     }),
-    Some(Opcode {
-        name: "LDA",
+    Some(OpcodeData {
+        name: OpcodeType::LDA,
         addr_mode: AddressingMode::ABS,
     }),
-    Some(Opcode {
-        name: "LDX",
+    Some(OpcodeData {
+        name: OpcodeType::LDX,
         addr_mode: AddressingMode::ABS,
     }),
     None,
-    Some(Opcode {
-        name: "BCS",
+    Some(OpcodeData {
+        name: OpcodeType::BCS,
         addr_mode: AddressingMode::REL,
     }),
-    Some(Opcode {
-        name: "LDA",
+    Some(OpcodeData {
+        name: OpcodeType::LDA,
         addr_mode: AddressingMode::INDY,
     }),
     None,
     None,
-    Some(Opcode {
-        name: "LDY",
+    Some(OpcodeData {
+        name: OpcodeType::LDY,
         addr_mode: AddressingMode::ZPGX,
     }),
-    Some(Opcode {
-        name: "LDA",
+    Some(OpcodeData {
+        name: OpcodeType::LDA,
         addr_mode: AddressingMode::ZPGX,
     }),
-    Some(Opcode {
-        name: "LDX",
+    Some(OpcodeData {
+        name: OpcodeType::LDX,
         addr_mode: AddressingMode::ZPGY,
     }),
     None,
-    Some(Opcode {
-        name: "CLV",
+    Some(OpcodeData {
+        name: OpcodeType::CLV,
         addr_mode: AddressingMode::IMPL,
     }),
-    Some(Opcode {
-        name: "LDA",
+    Some(OpcodeData {
+        name: OpcodeType::LDA,
         addr_mode: AddressingMode::ABSY,
     }),
-    Some(Opcode {
-        name: "TSX",
+    Some(OpcodeData {
+        name: OpcodeType::TSX,
         addr_mode: AddressingMode::IMPL,
     }),
     None,
-    Some(Opcode {
-        name: "LDY",
+    Some(OpcodeData {
+        name: OpcodeType::LDY,
         addr_mode: AddressingMode::ABSX,
     }),
-    Some(Opcode {
-        name: "LDA",
+    Some(OpcodeData {
+        name: OpcodeType::LDA,
         addr_mode: AddressingMode::ABSX,
     }),
-    Some(Opcode {
-        name: "LDX",
+    Some(OpcodeData {
+        name: OpcodeType::LDX,
         addr_mode: AddressingMode::ABSY,
     }),
     None,
-    Some(Opcode {
-        name: "CPY",
+    Some(OpcodeData {
+        name: OpcodeType::CPY,
         addr_mode: AddressingMode::IMM,
     }),
-    Some(Opcode {
-        name: "CMP",
+    Some(OpcodeData {
+        name: OpcodeType::CMP,
         addr_mode: AddressingMode::INDX,
     }),
     None,
     None,
-    Some(Opcode {
-        name: "CPY",
+    Some(OpcodeData {
+        name: OpcodeType::CPY,
         addr_mode: AddressingMode::ZPG,
     }),
-    Some(Opcode {
-        name: "CMP",
+    Some(OpcodeData {
+        name: OpcodeType::CMP,
         addr_mode: AddressingMode::ZPG,
     }),
-    Some(Opcode {
-        name: "DEC",
+    Some(OpcodeData {
+        name: OpcodeType::DEC,
         addr_mode: AddressingMode::ZPG,
     }),
     None,
-    Some(Opcode {
-        name: "INY",
+    Some(OpcodeData {
+        name: OpcodeType::INY,
         addr_mode: AddressingMode::IMPL,
     }),
-    Some(Opcode {
-        name: "CMP",
+    Some(OpcodeData {
+        name: OpcodeType::CMP,
         addr_mode: AddressingMode::IMM,
     }),
-    Some(Opcode {
-        name: "DEX",
+    Some(OpcodeData {
+        name: OpcodeType::DEX,
         addr_mode: AddressingMode::IMPL,
     }),
     None,
-    Some(Opcode {
-        name: "CPY",
+    Some(OpcodeData {
+        name: OpcodeType::CPY,
         addr_mode: AddressingMode::ABS,
     }),
-    Some(Opcode {
-        name: "CMP",
+    Some(OpcodeData {
+        name: OpcodeType::CMP,
         addr_mode: AddressingMode::ABS,
     }),
-    Some(Opcode {
-        name: "DEC",
+    Some(OpcodeData {
+        name: OpcodeType::DEC,
         addr_mode: AddressingMode::ABS,
     }),
     None,
-    Some(Opcode {
-        name: "BNE",
+    Some(OpcodeData {
+        name: OpcodeType::BNE,
         addr_mode: AddressingMode::REL,
     }),
-    Some(Opcode {
-        name: "CMP",
+    Some(OpcodeData {
+        name: OpcodeType::CMP,
         addr_mode: AddressingMode::INDY,
     }),
     None,
     None,
     None,
-    Some(Opcode {
-        name: "CMP",
+    Some(OpcodeData {
+        name: OpcodeType::CMP,
         addr_mode: AddressingMode::ZPGX,
     }),
-    Some(Opcode {
-        name: "DEC",
+    Some(OpcodeData {
+        name: OpcodeType::DEC,
         addr_mode: AddressingMode::ZPGX,
     }),
     None,
-    Some(Opcode {
-        name: "CLD",
+    Some(OpcodeData {
+        name: OpcodeType::CLD,
         addr_mode: AddressingMode::IMPL,
     }),
-    Some(Opcode {
-        name: "CMP",
+    Some(OpcodeData {
+        name: OpcodeType::CMP,
         addr_mode: AddressingMode::ABSY,
     }),
     None,
     None,
     None,
-    Some(Opcode {
-        name: "CMP",
+    Some(OpcodeData {
+        name: OpcodeType::CMP,
         addr_mode: AddressingMode::ABSX,
     }),
-    Some(Opcode {
-        name: "DEC",
+    Some(OpcodeData {
+        name: OpcodeType::DEC,
         addr_mode: AddressingMode::ABSX,
     }),
     None,
-    Some(Opcode {
-        name: "CPX",
+    Some(OpcodeData {
+        name: OpcodeType::CPX,
         addr_mode: AddressingMode::IMM,
     }),
-    Some(Opcode {
-        name: "SBC",
+    Some(OpcodeData {
+        name: OpcodeType::SBC,
         addr_mode: AddressingMode::INDX,
     }),
     None,
     None,
-    Some(Opcode {
-        name: "CPX",
+    Some(OpcodeData {
+        name: OpcodeType::CPX,
         addr_mode: AddressingMode::ZPG,
     }),
-    Some(Opcode {
-        name: "SBC",
+    Some(OpcodeData {
+        name: OpcodeType::SBC,
         addr_mode: AddressingMode::ZPG,
     }),
-    Some(Opcode {
-        name: "INC",
+    Some(OpcodeData {
+        name: OpcodeType::INC,
         addr_mode: AddressingMode::ZPG,
     }),
     None,
-    Some(Opcode {
-        name: "INX",
+    Some(OpcodeData {
+        name: OpcodeType::INX,
         addr_mode: AddressingMode::IMPL,
     }),
-    Some(Opcode {
-        name: "SBC",
+    Some(OpcodeData {
+        name: OpcodeType::SBC,
         addr_mode: AddressingMode::IMM,
     }),
-    Some(Opcode {
-        name: "NOP",
+    Some(OpcodeData {
+        name: OpcodeType::NOP,
         addr_mode: AddressingMode::IMPL,
     }),
     None,
-    Some(Opcode {
-        name: "CPX",
+    Some(OpcodeData {
+        name: OpcodeType::CPX,
         addr_mode: AddressingMode::ABS,
     }),
-    Some(Opcode {
-        name: "SBC",
+    Some(OpcodeData {
+        name: OpcodeType::SBC,
         addr_mode: AddressingMode::ABS,
     }),
-    Some(Opcode {
-        name: "INC",
+    Some(OpcodeData {
+        name: OpcodeType::INC,
         addr_mode: AddressingMode::ABS,
     }),
     None,
-    Some(Opcode {
-        name: "BEQ",
+    Some(OpcodeData {
+        name: OpcodeType::BEQ,
         addr_mode: AddressingMode::REL,
     }),
-    Some(Opcode {
-        name: "SBC",
+    Some(OpcodeData {
+        name: OpcodeType::SBC,
         addr_mode: AddressingMode::INDY,
     }),
     None,
     None,
     None,
-    Some(Opcode {
-        name: "SBC",
+    Some(OpcodeData {
+        name: OpcodeType::SBC,
         addr_mode: AddressingMode::ZPGX,
     }),
-    Some(Opcode {
-        name: "INC",
+    Some(OpcodeData {
+        name: OpcodeType::INC,
         addr_mode: AddressingMode::ZPGX,
     }),
     None,
-    Some(Opcode {
-        name: "SED",
+    Some(OpcodeData {
+        name: OpcodeType::SED,
         addr_mode: AddressingMode::IMPL,
     }),
-    Some(Opcode {
-        name: "SBC",
+    Some(OpcodeData {
+        name: OpcodeType::SBC,
         addr_mode: AddressingMode::ABSY,
     }),
     None,
     None,
     None,
-    Some(Opcode {
-        name: "SBC",
+    Some(OpcodeData {
+        name: OpcodeType::SBC,
         addr_mode: AddressingMode::ABSX,
     }),
-    Some(Opcode {
-        name: "INC",
+    Some(OpcodeData {
+        name: OpcodeType::INC,
         addr_mode: AddressingMode::ABSX,
     }),
     None,
 ];
-//Opcode {name: "LDA",addr_mode: AddressingMode},
+
+mod test {
+    use super::OpcodeType;
+    #[test]
+    fn test_opcode_name() {
+        let strings = vec![("LDA", true), ("STA", true), ("JMP", true), ("xd", false)];
+        for (string, is_ok) in strings.iter() {
+            let res = OpcodeType::identify(&string);
+            println!("{} -> {:?}", string, res);
+            assert_eq!(res.is_ok(), *is_ok);
+        }
+    }
+}

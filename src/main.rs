@@ -1,12 +1,10 @@
+#[macro_use]
+extern crate nom;
+
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader, BufWriter, Write};
 use std::path::PathBuf;
 use structopt::StructOpt;
-
-mod addressing_modes;
-mod assembler;
-mod opcodes;
-mod parser;
 
 // #region Arguments handling
 #[derive(StructOpt)]
@@ -18,25 +16,9 @@ struct Args {
 }
 // #endregion
 
-// #region Program
-struct Context {
-    addr: usize,
-    tokens: Vec<parser::Token>,
-    labels: HashMap<String, usize>,
-    hex: Vec<u8>
-}
-impl Context {
-    fn new() -> Self {
-        Context {
-            addr: 0,
-            tokens: vec![],
-            labels: HashMap::new(),
-            hex: vec![]Zzz
-        }
-    }
-}
-// #endregion
-
+mod addressing_modes;
+mod opcodes;
+mod parser;
 
 fn main() {
     let args = Args::from_args();
@@ -61,7 +43,15 @@ fn main() {
             })
             .expect(&format!("Could not open file {:?}", &args.input)),
     );
-    let mut ctx = Context::new();
+
+    for line in input_buf.lines().map(|v: Result<String, _>| v.unwrap()) {
+        let line: &[u8] = line.as_bytes();
+        let (rest, result) = parser::parse_line(line).expect("lol error");
+        println!("{:?}", result);
+    }
+
+    /* let mut ctx = Context::new();
+
     for line in input_buf.lines().map(|v| v.unwrap()) {
         ctx.tokens.push(parser::Token::new(line, ctx.addr));
         let last: &parser::Token = ctx.tokens.last().unwrap();
@@ -77,6 +67,6 @@ fn main() {
             _ => (),
         };
     }
-    assembler::assemble(&mut ctx);
+    assembler::assemble(&mut ctx); */
     // println!("{}",input_file.read);
 }
