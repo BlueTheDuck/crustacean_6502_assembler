@@ -7,7 +7,7 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug executable 'crustacean_6502_assembler'",
+            "name": "Debug executable",
             "cargo": {
                 "args": [
                     "build",
@@ -25,7 +25,7 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in executable 'crustacean_6502_assembler'",
+            "name": "Debug tests",
             "cargo": {
                 "args": [
                     "test",

@@ -13,13 +13,6 @@ enum Value {
 }
 type ArgumentType = (AddressingMode, Value);
 
-/* #[derive(PartialEq, Debug)]
-pub enum ArgumentType {
-    AddrShort(u8),
-    AddrLong(u16),
-    Value(u8),
-    Label(String),
-} */
 #[derive(Debug)]
 pub struct Opcode {
     name: OpcodeType,
@@ -70,7 +63,7 @@ fn argument(input: &[u8]) -> IResult<&[u8], ArgumentType> {
 }
 // #endregion
 // #region Types
-// TODO: Improve marign recognition
+// TODO: Improve margin recognition
 named!(margin<&[u8]>, take_while!(character::is_space));
 fn parse_argument(input: &[u8]) -> IResult<&[u8], Option<ArgumentType>> {
     if input.is_empty() {
@@ -117,11 +110,10 @@ named!(
 mod tests {
     use super::ArgumentType;
     use super::Value;
-    use super::{
-        argument, hex_addr_long, hex_addr_short, label_name, parse_line, parse_opcode_line,
-    };
+    use super::{argument, hex_addr_short, label_name, parse_line, parse_opcode_line};
     use crate::addressing_modes::AddressingMode;
     use nom::IResult;
+    use nom::{error::ErrorKind, Err as NErr};
     // #region Arguements
     #[test]
     fn test_hex_addr_short() {
@@ -153,29 +145,22 @@ mod tests {
     }
     #[test]
     fn test_hex_addr_long() {
-        let res: nom::Err<(&[u8], nom::error::ErrorKind)> = hex_addr_long(b"$23")
-            .err()
-            .expect("This should have errored");
-        assert_eq!(
-            res,
-            nom::Err::Error((&[50, 51][..], nom::error::ErrorKind::Eof))
-        );
-        let res: IResult<&[u8], ArgumentType> = hex_addr_long(b"bd23");
-        assert_eq!(
-            res,
-            Err(nom::Err::Error((&b"bd23"[..], nom::error::ErrorKind::Char)))
-        );
-        let res: IResult<&[u8], ArgumentType> = hex_addr_long(b"");
-        assert_eq!(res, Err(nom::Err::Incomplete(nom::Needed::Size(1))));
+        use super::hex_addr_long;
+        let tests_error = [&b"$23"[..], &b"bd23"[..], &b"$2334sd"[..]];
+        let errors_exp = [
+            NErr::Error((&b"23"[..], ErrorKind::Eof)),
+            NErr::Error((&b"bd23"[..], ErrorKind::Char)),
+            NErr::Error((&b"sd"[..], ErrorKind::Eof)),
+        ];
+        for (test, error) in tests_error.iter().zip(errors_exp.iter()) {
+            let res: IResult<&[u8], ArgumentType> = hex_addr_long(test);
+            println!("{:?} -> {:?} / {:?}", test, res, error);
+            assert_eq!(&res.err().unwrap(), error);
+        }
         let res: IResult<&[u8], ArgumentType> = hex_addr_long(b"$2334");
         assert_eq!(
             res,
             Ok((&[][..], (AddressingMode::ABS, Value::Long(0x2334))))
-        );
-        let res: IResult<&[u8], ArgumentType> = hex_addr_long(b"$2334sd4");
-        assert_eq!(
-            res,
-            Err(nom::Err::Error((&b"sd4"[..], nom::error::ErrorKind::Eof)))
         );
     }
     #[test]
