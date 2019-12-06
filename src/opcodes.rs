@@ -18,16 +18,16 @@ pub enum OpcodeType {
     ADC,
     AND,
     ASL,
-    BCC,
-    BCS,
-    BEQ,
+    BCC, // Branch ops
+    BCS, // Branch ops
+    BEQ, // Branch ops
     BIT,
-    BMI,
-    BNE,
-    BPL,
+    BMI, // Branch ops
+    BNE, // Branch ops
+    BPL, // Branch ops
     BRK,
-    BVC,
-    BVS,
+    BVC, // Branch ops
+    BVS, // Branch ops
     CLC,
     CLD,
     CLI,
@@ -135,6 +135,11 @@ impl OpcodeType {
             "TYA" => Ok(OpcodeType::TYA),
             _ => Err(()),
         }
+    }
+    pub fn is_branch_op(&self) -> bool {
+        use OpcodeType::*;
+        let branch_ops = [BCC, BCS, BEQ, BMI, BNE, BPL, BVC, BVS];
+        branch_ops.contains(self)
     }
 }
 pub struct OpcodeData {

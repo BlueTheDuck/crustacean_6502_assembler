@@ -82,12 +82,17 @@ fn parse_argument(input: &[u8]) -> IResult<&[u8], Option<ArgumentType>> {
 fn parse_opcode_line(input: &[u8]) -> IResult<&[u8], Opcode> {
     let (input, _) = margin(input)?;
     let (input, name) = bytes::take_while_m_n(3, 3, character::is_alphabetic)(input)?;
-    let name = match OpcodeType::identify(&&from_utf8(name).expect("Couldn't convert [u8] to str"))
-    {
-        Ok(v) => v,
-        Err(_) => return Err(nom::Err::Failure((input, nom::error::ErrorKind::MapRes))),
-    };
-    let (input, arg) = parse_argument(input)?;
+    let name: OpcodeType =
+        match OpcodeType::identify(&&from_utf8(name).expect("Couldn't convert [u8] to str")) {
+            Ok(v) => v,
+            Err(_) => return Err(nom::Err::Failure((input, nom::error::ErrorKind::MapRes))),
+        };
+    let (input, mut arg): (_, Option<ArgumentType>) = parse_argument(input)?;
+    // If the OPCODE is any kind of branch, then we DO NOT USE ABS as addressing mode,
+    // even if its argument is a label, so we manually patch this
+    if name.is_branch_op() {
+        arg = arg.map(|(_, val): (AddressingMode, Value)| (AddressingMode::REL, val));
+    }
     Ok((input, Opcode { name, arg }))
 }
 fn label_def(input: &[u8]) -> IResult<&[u8], String> {
@@ -173,7 +178,7 @@ mod tests {
             (AddressingMode::ABS, Value::Label("Hello".to_string())),
         ];
         for (test, exp) in tests.iter().zip(tests_results.iter()) {
-            let (_, res) = argument(test).ok().expect("This shouldn't haver errored");
+            let (_, res) = argument(test).expect("This shouldn't haver errored");
             println!("{:X?} -> {:?} / {:?}", test, exp, res);
             assert_eq!(&res, exp);
         }
