@@ -110,38 +110,32 @@ named!(
 mod tests {
     use super::ArgumentType;
     use super::Value;
-    use super::{argument, hex_addr_short, label_name, parse_line, parse_opcode_line};
+    use super::{argument, label_name, parse_line, parse_opcode_line};
     use crate::addressing_modes::AddressingMode;
     use nom::IResult;
     use nom::{error::ErrorKind, Err as NErr};
     // #region Arguements
     #[test]
     fn test_hex_addr_short() {
+        use super::hex_addr_short;
+        let tests_error = [&b"$2A43"[..], &b"bd23"[..], &b"$23sd"[..], &b""[..]];
+        let errors_exp = [
+            NErr::Error((&b"43"[..], ErrorKind::Eof)),
+            NErr::Error((&b"bd23"[..], ErrorKind::Char)),
+            NErr::Error((&b"sd"[..], ErrorKind::Eof)),
+            NErr::Incomplete(nom::Needed::Size(1)),
+        ];
+        for (test, error) in tests_error.iter().zip(errors_exp.iter()) {
+            let res: NErr<(&[u8], ErrorKind)> = hex_addr_short(test)
+                .err()
+                .expect("This should have errored");
+            println!("{:?} -> {:?} / {:?}", test, res, error);
+            assert_eq!(&res, error);
+        }
         let (rest, ag_type): (&[u8], ArgumentType) =
             hex_addr_short(b"$23").expect("This should have been an Ok");
         assert_eq!(rest, &[][..]);
         assert_eq!(ag_type, (AddressingMode::ZPG, Value::Short(0x23)));
-
-        let err: nom::Err<(&[u8], nom::error::ErrorKind)> = hex_addr_short(b"bd23")
-            .err()
-            .expect("This should have been an Err");
-        assert_eq!(
-            err,
-            nom::Err::Error((&b"bd23"[..], nom::error::ErrorKind::Char))
-        );
-
-        let err: nom::Err<(&[u8], nom::error::ErrorKind)> = hex_addr_short(b"")
-            .err()
-            .expect("This should have been an Err");
-        assert_eq!(err, nom::Err::Incomplete(nom::Needed::Size(1)));
-
-        let err: nom::Err<(&[u8], nom::error::ErrorKind)> = hex_addr_short(b"$2345")
-            .err()
-            .expect("This should have been an Err");
-        assert_eq!(
-            err,
-            nom::Err::Error((&[52, 53][..], nom::error::ErrorKind::Eof))
-        );
     }
     #[test]
     fn test_hex_addr_long() {
@@ -153,9 +147,10 @@ mod tests {
             NErr::Error((&b"sd"[..], ErrorKind::Eof)),
         ];
         for (test, error) in tests_error.iter().zip(errors_exp.iter()) {
-            let res: IResult<&[u8], ArgumentType> = hex_addr_long(test);
+            let res: NErr<(&[u8], ErrorKind)> =
+                hex_addr_long(test).err().expect("This should have errored");
             println!("{:?} -> {:?} / {:?}", test, res, error);
-            assert_eq!(&res.err().unwrap(), error);
+            assert_eq!(&res, error);
         }
         let res: IResult<&[u8], ArgumentType> = hex_addr_long(b"$2334");
         assert_eq!(
@@ -170,19 +165,17 @@ mod tests {
     }
     #[test]
     fn test_argument() {
-        let tests = [
-            (&b"#$AD"[..], (AddressingMode::IMM, Value::Short(0xAD))),
-            (&b"$ADDE"[..], (AddressingMode::ABS, Value::Long(0xADDE))),
-            (&b"$AD"[..], (AddressingMode::ZPG, Value::Short(0xAD))),
-            (
-                &b"Hello"[..],
-                (AddressingMode::ABS, Value::Label("Hello".to_string())),
-            ),
+        let tests = [&b"#$AD"[..], &b"$ADDE"[..], &b"$AD"[..], &b"Hello"[..]];
+        let tests_results = [
+            (AddressingMode::IMM, Value::Short(0xAD)),
+            (AddressingMode::ABS, Value::Long(0xADDE)),
+            (AddressingMode::ZPG, Value::Short(0xAD)),
+            (AddressingMode::ABS, Value::Label("Hello".to_string())),
         ];
-        for test in tests.iter() {
-            println!("{:X?}, {:?} ", test.0, test.1);
-            println!("{:X?}", argument(test.0));
-            assert_eq!(argument(test.0).ok().unwrap().1, test.1);
+        for (test, exp) in tests.iter().zip(tests_results.iter()) {
+            let (_, res) = argument(test).ok().expect("This shouldn't haver errored");
+            println!("{:X?} -> {:?} / {:?}", test, exp, res);
+            assert_eq!(&res, exp);
         }
     }
     // #endregion
