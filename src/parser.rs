@@ -5,7 +5,14 @@ use nom::IResult;
 use nom::{bytes::complete as bytes, character, combinator};
 use std::str::from_utf8;
 
+fn u8_to_hex(v: &[u8]) -> Result<usize, ()> {
+    let text = from_utf8(v).map_err(|_| ())?;
+    usize::from_str_radix(text, 16).map_err(|_| ())
+}
+
 // #region Types
+pub type NomError<'i> = nom::Err<(&'i [u8], nom::error::ErrorKind)>;
+
 #[derive(Debug, PartialEq)]
 pub enum Value {
     Short(u8),
@@ -24,11 +31,6 @@ pub struct Opcode {
 pub enum LineType {
     Opcode(Opcode),
     LabelDef(String),
-}
-
-fn u8_to_hex(v: &[u8]) -> Result<usize, ()> {
-    let text = from_utf8(v).map_err(|_| ())?;
-    usize::from_str_radix(text, 16).map_err(|_| ())
 }
 // #endregion
 // #region Arguments

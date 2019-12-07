@@ -1,20 +1,22 @@
 use super::addressing_modes::AddressingMode;
+use crate::error::Error;
 use crate::parser::Opcode;
 
-pub fn get_code(name: &OpcodeType, addr_mode: &AddressingMode) -> Option<u8> {
+pub fn get_code(name: OpcodeType, addr_mode: &AddressingMode) -> Result<u8, Error> {
     for (i, opcode) in OPCODES.iter().enumerate() {
         match opcode {
             None => continue,
             Some(ref opcode) => {
-                if &opcode.name == name && &opcode.addr_mode == addr_mode {
-                    return Some((i & 0xFF) as u8);
+                if opcode.name == name && &opcode.addr_mode == addr_mode {
+                    return Ok((i & 0xFF) as u8);
                 }
             }
         }
     }
-    return None;
+    Err(Error::UnkownOpcode { name: name.into() })
 }
-#[derive(Debug, PartialEq)]
+
+#[derive(Debug, PartialEq, Copy, Clone)]
 pub enum OpcodeType {
     ADC,
     AND,
@@ -143,6 +145,12 @@ impl OpcodeType {
         branch_ops.contains(self)
     }
 }
+impl std::convert::Into<String> for OpcodeType {
+    fn into(self) -> String {
+        format!("{:?}", self)
+    }
+}
+#[derive(Debug)]
 pub struct OpcodeData {
     name: OpcodeType,
     addr_mode: AddressingMode,
