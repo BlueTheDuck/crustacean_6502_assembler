@@ -17,6 +17,7 @@ struct Args {
 // #endregion
 
 mod addressing_modes;
+mod assembler;
 mod opcodes;
 mod parser;
 
