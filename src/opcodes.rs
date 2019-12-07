@@ -1,13 +1,13 @@
 use super::addressing_modes::AddressingMode;
 use crate::parser::Opcode;
 
-pub fn get_code(name: OpcodeType, addr_mode: AddressingMode) -> Option<usize> {
+pub fn get_code(name: &OpcodeType, addr_mode: &AddressingMode) -> Option<u8> {
     for (i, opcode) in OPCODES.iter().enumerate() {
         match opcode {
             None => continue,
-            Some(opcode) => {
-                if opcode.name == name && opcode.addr_mode == addr_mode {
-                    return Some(i);
+            Some(ref opcode) => {
+                if &opcode.name == name && &opcode.addr_mode == addr_mode {
+                    return Some((i & 0xFF) as u8);
                 }
             }
         }
