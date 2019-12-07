@@ -5,19 +5,20 @@ use nom::IResult;
 use nom::{bytes::complete as bytes, character, combinator};
 use std::str::from_utf8;
 
+// #region Types
 #[derive(Debug, PartialEq)]
-enum Value {
+pub enum Value {
     Short(u8),
     Long(u16),
     Label(String),
     None,
 }
-type ArgumentType = (AddressingMode, Value);
+pub type ArgumentType = (AddressingMode, Value);
 
 #[derive(Debug)]
 pub struct Opcode {
-    name: OpcodeType,
-    arg: ArgumentType,
+    pub name: OpcodeType,
+    pub arg: ArgumentType,
 }
 #[derive(Debug)]
 pub enum LineType {
@@ -29,6 +30,7 @@ fn u8_to_hex(v: &[u8]) -> Result<usize, ()> {
     let text = from_utf8(v).map_err(|_| ())?;
     usize::from_str_radix(text, 16).map_err(|_| ())
 }
+// #endregion
 // #region Arguments
 named!(eof, eof!());
 
