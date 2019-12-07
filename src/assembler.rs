@@ -1,4 +1,5 @@
 use crate::addressing_modes;
+use crate::error::Error;
 use crate::parser::{LineType, Value};
 use crate::{opcodes, opcodes::get_code};
 use std::collections::HashMap;
@@ -8,13 +9,11 @@ fn big_to_little_endiann(value: u16) -> (u8, u8) {
     ((value & 0xFF) as u8, ((value & 0xFF00) >> 8) as u8)
 }
 
-pub fn assemble(parsed_code: Vec<LineType>) -> Result<[u8; 0x10000], ()> {
-    /*
-        cart: holds the code
-        labels: label=address
-        labels_used_on: places where a label was used
-        addr: where to place the code
-    */
+pub fn assemble(parsed_code: Vec<LineType>) -> Result<[u8; 0x10000], Error> {
+    // cart: holds the code
+    // labels: label=address
+    // labels_used_on: places where a label was used
+    // addr: where to place the code
     let mut cart: [u8; 0x10000] = [0x00; 0x10000];
     let mut labels: HashMap<String, usize> = HashMap::default();
     let mut labels_used_on: HashMap<String, Vec<usize>> = HashMap::default();
@@ -26,7 +25,7 @@ pub fn assemble(parsed_code: Vec<LineType>) -> Result<[u8; 0x10000], ()> {
                 labels.insert(name.clone(), addr);
             }
             LineType::Opcode(opcode) => {
-                let code = get_code(&opcode.name, &opcode.arg.0).ok_or(())?;
+                let code = get_code(opcode.name, &opcode.arg.0)?;
                 let size = addressing_modes::get_size(&opcode.arg.0);
                 cart[addr] = code;
                 match &opcode.arg.1 {
@@ -67,7 +66,9 @@ pub fn assemble(parsed_code: Vec<LineType>) -> Result<[u8; 0x10000], ()> {
         }
     }
     if !labels_used_on.is_empty() {
-        return Err(());
+        return Err(Error::UndefLabel {
+            labels: format!("{:?}", labels_used_on),
+        });
     }
     Ok(cart)
 }
