@@ -5,7 +5,8 @@ use nom::{error::ErrorKind, Err as NErr};
 custom_error! {pub Error
     Parser{cause: String} = "Parser error: {cause}",
     UnkownOpcode{name: String} = "Unkown opcode {name} (Maybe the addressing mode is not valid?)",
-    UndefLabel{labels: String} = "These labels were used, but a definition couldn't be found: {labels}"
+    UndefLabel{labels: String} = "These labels were used, but a definition couldn't be found: {labels}",
+    IoError{source: std::io::Error} = "IO Error {source}"
 }
 impl<'i> std::convert::From<NomError<'i>> for Error {
     fn from(err: NomError<'i>) -> Error {
