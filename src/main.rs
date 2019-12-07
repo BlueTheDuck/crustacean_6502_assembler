@@ -49,12 +49,6 @@ fn main() -> Result<(), error::Error> {
             .expect(&format!("Could not open file {:?}", &args.input)),
     );
 
-    /* for line in input_buf.lines().map(|v: Result<String, _>| v.unwrap()) {
-        let line: &[u8] = line.as_bytes();
-        let (rest, result) = parser::parse_line(line)?;
-
-        println!("{:?}", result);
-    } */
     let code: Vec<LineType> = input_buf
         .lines()
         .map(|line| line.map_err(|e| e.into()))
@@ -65,7 +59,6 @@ fn main() -> Result<(), error::Error> {
             Err(e) => Err(e),
         })
         .collect::<Result<_, _>>()?;
-    let line: Result<String, std::io::Error> = Ok("Hello".to_string());
-    let line: Result<String, Error> = line.map_err(|e| e.into());
+
     Ok(())
 }

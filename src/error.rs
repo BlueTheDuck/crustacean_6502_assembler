@@ -8,6 +8,7 @@ custom_error! {pub Error
     UndefLabel{labels: String} = "These labels were used, but a definition couldn't be found: {labels}",
     IoError{source: std::io::Error} = "IO Error {source}"
 }
+
 impl<'i> std::convert::From<NomError<'i>> for Error {
     fn from(err: NomError<'i>) -> Error {
         let cause = match err {
