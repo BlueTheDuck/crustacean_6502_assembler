@@ -59,6 +59,8 @@ fn main() -> Result<(), error::Error> {
             Err(e) => Err(e),
         })
         .collect::<Result<_, _>>()?;
+    let code = assemble(code)?;
+    output_buf.write(&code);
 
     Ok(())
 }
