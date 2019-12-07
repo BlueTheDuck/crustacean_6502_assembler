@@ -1,15 +1,3 @@
-macro_rules! bytify {
-    ($var: expr,$count: literal) => {{
-        let mut bytes: Vec<u8> = Vec::with_capacity($count);
-        let mut value = $var;
-        for i in 0..$count {
-            bytes.push((value & 0xFF) as u8);
-            value = value / 8;
-        }
-        bytes
-    }};
-}
-
 //A,abs,absX,absY,imm,impl,ind,indX,indY,rel,zpg,zpgX,zpgY
 //1,  3,   3,   3,   2,  1,  3,   2,   2,  2,  2,   2,   2
 pub static OP_SIZES: [usize; 13] = [1, 3, 3, 3, 2, 1, 3, 2, 2, 2, 2, 2, 2];
@@ -29,4 +17,8 @@ pub enum AddressingMode {
     ZPG,   // LDA $10
     ZPGX,  // LDA $10,X
     ZPGY,  // LDA $10,Y
+}
+
+pub fn get_size(addr_mode: &AddressingMode) -> usize {
+    OP_SIZES[*addr_mode as usize]
 }
