@@ -1,6 +1,7 @@
 use super::addressing_modes::AddressingMode;
+use crate::parser::Opcode;
 
-/* pub fn get_code(name: &str, addr_mode: AddressingMode) -> Option<usize> {
+pub fn get_code(name: OpcodeType, addr_mode: AddressingMode) -> Option<usize> {
     for (i, opcode) in OPCODES.iter().enumerate() {
         match opcode {
             None => continue,
@@ -12,7 +13,7 @@ use super::addressing_modes::AddressingMode;
         }
     }
     return None;
-} */
+}
 #[derive(Debug, PartialEq)]
 pub enum OpcodeType {
     ADC,
