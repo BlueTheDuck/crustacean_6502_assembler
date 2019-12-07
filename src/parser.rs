@@ -10,13 +10,14 @@ enum Value {
     Short(u8),
     Long(u16),
     Label(String),
+    None,
 }
 type ArgumentType = (AddressingMode, Value);
 
 #[derive(Debug)]
 pub struct Opcode {
     name: OpcodeType,
-    arg: Option<ArgumentType>,
+    arg: ArgumentType,
 }
 #[derive(Debug)]
 pub enum LineType {
@@ -65,19 +66,19 @@ fn argument(input: &[u8]) -> IResult<&[u8], ArgumentType> {
 // #region Types
 // TODO: Improve margin recognition
 named!(margin<&[u8]>, take_while!(character::is_space));
-fn parse_argument(input: &[u8]) -> IResult<&[u8], Option<ArgumentType>> {
+fn parse_argument(input: &[u8]) -> IResult<&[u8], ArgumentType> {
     if input.is_empty() {
-        return Ok((input, None));
+        return Ok((input, (AddressingMode::IMPL, Value::None)));
     }
     let (input, _) = character::streaming::char(' ')(input)?;
     if input.is_empty() {
-        return Ok((input, None));
+        return Ok((input, (AddressingMode::IMPL, Value::None)));
     }
     let (input, arg) = argument(input)?;
     if !input.is_empty() {
         return Err(nom::Err::Error((input, nom::error::ErrorKind::TooLarge)));
     }
-    Ok((input, Some(arg)))
+    Ok((input, arg))
 }
 fn parse_opcode_line(input: &[u8]) -> IResult<&[u8], Opcode> {
     let (input, _) = margin(input)?;
@@ -87,11 +88,11 @@ fn parse_opcode_line(input: &[u8]) -> IResult<&[u8], Opcode> {
             Ok(v) => v,
             Err(_) => return Err(nom::Err::Failure((input, nom::error::ErrorKind::MapRes))),
         };
-    let (input, mut arg): (_, Option<ArgumentType>) = parse_argument(input)?;
+    let (input, mut arg): (_, ArgumentType) = parse_argument(input)?;
     // If the OPCODE is any kind of branch, then we DO NOT USE ABS as addressing mode,
     // even if its argument is a label, so we manually patch this
     if name.is_branch_op() {
-        arg = arg.map(|(_, val): (AddressingMode, Value)| (AddressingMode::REL, val));
+        arg = (AddressingMode::REL, arg.1);
     }
     Ok((input, Opcode { name, arg }))
 }
