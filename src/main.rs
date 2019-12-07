@@ -1,7 +1,10 @@
 #[macro_use]
 extern crate nom;
+extern crate custom_error;
 
-use std::collections::HashMap;
+use assembler::assemble;
+use error::Error;
+use parser::LineType;
 use std::io::{BufRead, BufReader, BufWriter, Write};
 use std::path::PathBuf;
 use structopt::StructOpt;
@@ -18,10 +21,11 @@ struct Args {
 
 mod addressing_modes;
 mod assembler;
+mod error;
 mod opcodes;
 mod parser;
 
-fn main() {
+fn main() -> Result<(), error::Error> {
     let args = Args::from_args();
     let input_buf = BufReader::new(
         std::fs::OpenOptions::new()
@@ -45,29 +49,23 @@ fn main() {
             .expect(&format!("Could not open file {:?}", &args.input)),
     );
 
-    for line in input_buf.lines().map(|v: Result<String, _>| v.unwrap()) {
+    /* for line in input_buf.lines().map(|v: Result<String, _>| v.unwrap()) {
         let line: &[u8] = line.as_bytes();
-        let (rest, result) = parser::parse_line(line).expect("lol error");
+        let (rest, result) = parser::parse_line(line)?;
+
         println!("{:?}", result);
-    }
-
-    /* let mut ctx = Context::new();
-
-    for line in input_buf.lines().map(|v| v.unwrap()) {
-        ctx.tokens.push(parser::Token::new(line, ctx.addr));
-        let last: &parser::Token = ctx.tokens.last().unwrap();
-        ctx.addr += last.get_size();
-        match &last.line_data {
-            parser::LineData::Label(name) => {
-                ctx.labels.insert(name.to_string(), ctx.addr);
-            }
-            parser::LineData::Macro(r#macro) => {
-                let r#macro: &parser::Macro = r#macro;
-                println!("{:#?}", r#macro);
-            }
-            _ => (),
-        };
-    }
-    assembler::assemble(&mut ctx); */
-    // println!("{}",input_file.read);
+    } */
+    let code: Vec<LineType> = input_buf
+        .lines()
+        .map(|line| line.map_err(|e| e.into()))
+        .map(|line: Result<String, Error>| match line {
+            Ok(line) => parser::parse_line(line.as_bytes())
+                .map_err(|e| e.into())
+                .map(|(rest, line)| line),
+            Err(e) => Err(e),
+        })
+        .collect::<Result<_, _>>()?;
+    let line: Result<String, std::io::Error> = Ok("Hello".to_string());
+    let line: Result<String, Error> = line.map_err(|e| e.into());
+    Ok(())
 }
