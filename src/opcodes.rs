@@ -1,13 +1,12 @@
 use super::addressing_modes::AddressingMode;
 use crate::error::Error;
-use crate::parser::Opcode;
 
-pub fn get_code(name: OpcodeType, addr_mode: &AddressingMode) -> Result<u8, Error> {
+pub fn get_code(name: OpcodeType, addr_mode: AddressingMode) -> Result<u8, Error> {
     for (i, opcode) in OPCODES.iter().enumerate() {
         match opcode {
             None => continue,
             Some(ref opcode) => {
-                if opcode.name == name && &opcode.addr_mode == addr_mode {
+                if opcode.name == name && opcode.addr_mode == addr_mode {
                     return Ok((i & 0xFF) as u8);
                 }
             }
@@ -139,10 +138,10 @@ impl OpcodeType {
             _ => Err(()),
         }
     }
-    pub fn is_branch_op(&self) -> bool {
+    pub fn is_branch_op(self) -> bool {
         use OpcodeType::*;
         let branch_ops = [BCC, BCS, BEQ, BMI, BNE, BPL, BVC, BVS];
-        branch_ops.contains(self)
+        branch_ops.contains(&self)
     }
 }
 impl std::convert::Into<String> for OpcodeType {
@@ -869,9 +868,9 @@ pub const OPCODES: [Option<OpcodeData>; 256] = [
 ];
 
 mod test {
-    use super::OpcodeType;
     #[test]
     fn test_opcode_name() {
+        use super::OpcodeType;
         let strings = vec![("LDA", true), ("STA", true), ("JMP", true), ("xd", false)];
         for (string, is_ok) in strings.iter() {
             let res = OpcodeType::identify(&string);

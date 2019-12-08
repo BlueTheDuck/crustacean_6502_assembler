@@ -9,4 +9,4 @@ edition = "2018"
 [dependencies]
 structopt = "^0.3.0"
 nom = "^5"
-custom_error = "*"
+custom_error = "^1.7.1"

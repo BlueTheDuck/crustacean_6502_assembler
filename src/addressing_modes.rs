@@ -1,5 +1,5 @@
-pub fn get_size(addr_mode: &AddressingMode) -> usize {
-    OP_SIZES[*addr_mode as usize]
+pub fn get_size(addr_mode: AddressingMode) -> usize {
+    OP_SIZES[addr_mode as usize]
 }
 
 //A,abs,absX,absY,imm,impl,ind,indX,indY,rel,zpg,zpgX,zpgY

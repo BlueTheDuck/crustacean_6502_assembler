@@ -1,6 +1,5 @@
 #[macro_use]
 extern crate nom;
-extern crate custom_error;
 
 use assembler::assemble;
 use error::Error;
@@ -26,12 +25,12 @@ mod opcodes;
 mod parser;
 
 fn main() -> Result<(), error::Error> {
-    let args = Args::from_args();
+    let args: Args = Args::from_args();
     let input_buf = BufReader::new(
         std::fs::OpenOptions::new()
             .read(true)
             .open(&args.input)
-            .expect(&format!("Could not open file {:?}", &args.input)),
+            .unwrap_or_else(|e| panic!("Could not open input file. Error: {:?}", e)),
     );
     let mut output_buf = BufWriter::new(
         std::fs::OpenOptions::new()
@@ -46,7 +45,7 @@ fn main() -> Result<(), error::Error> {
                     out
                 }
             })
-            .expect(&format!("Could not open file {:?}", &args.input)),
+            .unwrap_or_else(|e| panic!("Could not open output file. Error: {:?}", e)),
     );
 
     let code: Vec<LineType> = input_buf
@@ -55,12 +54,12 @@ fn main() -> Result<(), error::Error> {
         .map(|line: Result<String, Error>| match line {
             Ok(line) => parser::parse_line(line.as_bytes())
                 .map_err(|e| e.into())
-                .map(|(rest, line)| line),
+                .map(|(_, line)| line),
             Err(e) => Err(e),
         })
         .collect::<Result<_, _>>()?;
     let code = assemble(code)?;
-    output_buf.write(&code);
+    output_buf.write_all(&code)?;
 
     Ok(())
 }

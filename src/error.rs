@@ -25,9 +25,10 @@ impl<'i> std::convert::From<NomError<'i>> for Error {
 }
 
 mod tests {
-    use super::*;
     #[test]
     fn test_from_parser_to_main() {
+        use crate::error::Error;
+        use crate::parser::NomError;
         let parser_error = nom::character::complete::char('$')(&b"Hello"[..]);
         let parser_error: NomError = parser_error.err().unwrap();
         let error_enum: Error = parser_error.into();

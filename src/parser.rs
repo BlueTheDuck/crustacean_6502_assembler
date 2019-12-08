@@ -118,16 +118,13 @@ named!(
 );
 
 mod tests {
-    use super::ArgumentType;
-    use super::Value;
-    use super::{argument, label_name, parse_line, parse_opcode_line};
-    use crate::addressing_modes::AddressingMode;
-    use nom::IResult;
-    use nom::{error::ErrorKind, Err as NErr};
     // #region Arguements
     #[test]
     fn test_hex_addr_short() {
         use super::hex_addr_short;
+        use crate::addressing_modes::AddressingMode;
+        use crate::parser::{ArgumentType, Value};
+        use nom::{error::ErrorKind, Err as NErr};
         let tests_error = [&b"$2A43"[..], &b"bd23"[..], &b"$23sd"[..], &b""[..]];
         let errors_exp = [
             NErr::Error((&b"43"[..], ErrorKind::Eof)),
@@ -150,6 +147,9 @@ mod tests {
     #[test]
     fn test_hex_addr_long() {
         use super::hex_addr_long;
+        use crate::addressing_modes::AddressingMode;
+        use crate::parser::{ArgumentType, Value};
+        use nom::{error::ErrorKind, Err as NErr, IResult};
         let tests_error = [&b"$23"[..], &b"bd23"[..], &b"$2334sd"[..]];
         let errors_exp = [
             NErr::Error((&b"23"[..], ErrorKind::Eof)),
@@ -170,11 +170,14 @@ mod tests {
     }
     #[test]
     fn test_label() {
+        use crate::parser::label_name;
         let res = label_name(&b"hello"[..]);
         println!("{:?}", res);
     }
     #[test]
     fn test_argument() {
+        use crate::addressing_modes::AddressingMode;
+        use crate::parser::{argument, Value};
         let tests = [&b"#$AD"[..], &b"$ADDE"[..], &b"$AD"[..], &b"Hello"[..]];
         let tests_results = [
             (AddressingMode::IMM, Value::Short(0xAD)),
@@ -191,6 +194,7 @@ mod tests {
     // #endregion
     #[test]
     fn test_opcode() {
+        use super::parse_opcode_line;
         let tests = [
             &b"\tLDA $FF"[..],
             &b"  STA $F00F"[..],
@@ -207,6 +211,7 @@ mod tests {
     }
     #[test]
     fn test_line() {
+        use crate::parser::parse_line;
         let code: &str = include_str!("../assembly/custom.asm");
         for l in code.lines() {
             println!("{:X?}", parse_line(l.as_bytes()));

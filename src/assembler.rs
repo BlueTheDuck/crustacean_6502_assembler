@@ -1,7 +1,7 @@
 use crate::addressing_modes;
 use crate::error::Error;
+use crate::opcodes::get_code;
 use crate::parser::{LineType, Value};
-use crate::{opcodes, opcodes::get_code};
 use std::collections::HashMap;
 
 /// 0: Low 1: High
@@ -17,7 +17,7 @@ pub fn assemble(parsed_code: Vec<LineType>) -> Result<[u8; 0x10000], Error> {
     let mut cart: [u8; 0x10000] = [0x00; 0x10000];
     let mut labels: HashMap<String, usize> = HashMap::default();
     let mut labels_used_on: HashMap<String, Vec<usize>> = HashMap::default();
-    let mut addr: usize = 0x8000;
+    let mut addr = 0x8000;
 
     for line in parsed_code {
         match line {
@@ -25,8 +25,8 @@ pub fn assemble(parsed_code: Vec<LineType>) -> Result<[u8; 0x10000], Error> {
                 labels.insert(name.clone(), addr);
             }
             LineType::Opcode(opcode) => {
-                let code = get_code(opcode.name, &opcode.arg.0)?;
-                let size = addressing_modes::get_size(&opcode.arg.0);
+                let code = get_code(opcode.name, opcode.arg.0)?;
+                let size = addressing_modes::get_size(opcode.arg.0);
                 cart[addr] = code;
                 match &opcode.arg.1 {
                     Value::Long(long) => {
@@ -74,10 +74,10 @@ pub fn assemble(parsed_code: Vec<LineType>) -> Result<[u8; 0x10000], Error> {
 }
 
 mod tests {
-    use super::assemble;
-    use crate::parser::{parse_line, LineType};
     #[test]
     fn test_assemble() {
+        use crate::assembler::assemble;
+        use crate::parser::{parse_line, LineType};
         let test_code: &str = include_str!("../assembly/basic_opcodes.asm");
         let test_code: Vec<LineType> = test_code
             .lines()
@@ -89,6 +89,8 @@ mod tests {
     }
     #[test]
     fn test_labels() {
+        use crate::assembler::assemble;
+        use crate::parser::{parse_line, LineType};
         let test_code: &str = "\tLDA main";
         let test_code: Vec<LineType> = test_code
             .lines()
@@ -105,6 +107,7 @@ mod tests {
     }
 }
 
+#[allow(dead_code)]
 pub fn dump(code: &[u8], page_start: Option<usize>, page_end: Option<usize>) {
     for (page_addr, page) in code.chunks(256).enumerate() {
         if page_start.is_some() && page_addr < page_start.unwrap() {
