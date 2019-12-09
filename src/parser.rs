@@ -18,6 +18,7 @@ pub enum Value {
     Short(u8),
     Long(u16),
     Label(String),
+    Array(Vec<Value>),
     None,
 }
 pub type ArgumentType = (AddressingMode, Value);
@@ -31,10 +32,13 @@ pub struct Opcode {
 pub enum LineType {
     Opcode(Opcode),
     LabelDef(String),
+    Macro(String, Value),
 }
 // #endregion
 // #region Arguments
 named!(eof, eof!());
+// TODO: Improve margin recognition
+named!(margin<&[u8]>, take_while!(character::is_space));
 
 fn hex_addr_short(input: &[u8]) -> IResult<&[u8], ArgumentType> {
     let (input, _) = character::streaming::char('$')(input)?;
@@ -68,8 +72,6 @@ fn argument(input: &[u8]) -> IResult<&[u8], ArgumentType> {
 }
 // #endregion
 // #region Types
-// TODO: Improve margin recognition
-named!(margin<&[u8]>, take_while!(character::is_space));
 fn parse_argument(input: &[u8]) -> IResult<&[u8], ArgumentType> {
     if input.is_empty() {
         return Ok((input, (AddressingMode::IMPL, Value::None)));
@@ -84,6 +86,7 @@ fn parse_argument(input: &[u8]) -> IResult<&[u8], ArgumentType> {
     }
     Ok((input, arg))
 }
+
 fn parse_opcode_line(input: &[u8]) -> IResult<&[u8], Opcode> {
     let (input, _) = margin(input)?;
     let (input, name) = bytes::take_while_m_n(3, 3, character::is_alphabetic)(input)?;
@@ -108,12 +111,21 @@ fn label_def(input: &[u8]) -> IResult<&[u8], String> {
     let (input, _) = eof(input)?;
     Ok((input, value))
 }
+fn parse_macro(input: &[u8]) -> IResult<&[u8], (String, Value)> {
+    let (input, _) = character::complete::char('.')(input)?;
+    let (input, name) = character::complete::alpha1(input)?;
+    let name = String::from_utf8(name.to_vec())
+        .map_err(|_| nom::Err::Error((input, nom::error::ErrorKind::MapRes)))?;
+    let (input, (_, arg)) = parse_argument(input)?;
+    Ok((input, (name, arg)))
+}
 // #endregion
 named!(
     pub parse_line<LineType>,
     alt!(
         label_def => { |r|LineType::LabelDef(r) }|
-        parse_opcode_line => { |r|LineType::Opcode(r) }
+        parse_opcode_line => { |r|LineType::Opcode(r) }|
+        parse_macro => { |(n,a)|LineType::Macro(n,a) }
     )
 );
 
@@ -192,6 +204,12 @@ mod tests {
         }
     }
     // #endregion
+    #[test]
+    fn test_macro() {
+        use super::parse_macro;
+        let res = parse_macro(&b".org $8000"[..]);
+        println!("{:?}", res);
+    }
     #[test]
     fn test_opcode() {
         use super::parse_opcode_line;
