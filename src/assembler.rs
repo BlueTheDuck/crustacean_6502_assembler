@@ -5,7 +5,7 @@ use crate::parser::{LineType, Value};
 use std::collections::HashMap;
 
 /// 0: Low 1: High
-fn big_to_little_endiann(value: u16) -> (u8, u8) {
+fn big_to_little_endian(value: u16) -> (u8, u8) {
     ((value & 0xFF) as u8, ((value & 0xFF00) >> 8) as u8)
 }
 
@@ -25,9 +25,9 @@ impl Code {
         self.cart[self.pointer] = byte;
         self.pointer += 1;
     }
-    /// Take a u16, convert it to little endiand then place it on self.pointer, finally increment by 2
+    /// Take a u16, convert it to little endian then place it on self.pointer, finally increment by 2
     fn push_long(&mut self, long: u16) {
-        let long = big_to_little_endiann(long);
+        let long = big_to_little_endian(long);
         self.push_byte(long.0);
         self.push_byte(long.1);
     }
@@ -39,9 +39,8 @@ impl Code {
 
 pub fn assemble(parsed_code: Vec<LineType>) -> Result<[u8; 0x10000], Error> {
     // cart: holds the code
-    // labels: label=address
-    // labels_used_on: places where a label was used
-    // addr: where to place the code
+    // labels: holds the addrs of each label
+    // labels_used_on: holds the addresses where a label was used
     let mut code = Code::new();
     let mut labels: HashMap<String, usize> = HashMap::default();
     let mut labels_used_on: HashMap<String, Vec<usize>> = HashMap::default();
@@ -93,7 +92,7 @@ pub fn assemble(parsed_code: Vec<LineType>) -> Result<[u8; 0x10000], Error> {
             },
         };
     }
-    // Iterate thru all the defined labels
+    // Iterate through all the defined labels
     // removing them from the list of used_labels
     // and placing their address in the whitespaces left
     // on the assembling stage

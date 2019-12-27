@@ -201,10 +201,10 @@ mod tests {
             println!("{:?} -> {:?} / {:?}", test, res, error);
             assert_eq!(&res, error);
         }
-        let (rest, ag_type): (&[u8], ArgumentType) =
+        let (rest, arg_type): (&[u8], ArgumentType) =
             hex_addr_short(b"$23").expect("This should have been an Ok");
         assert_eq!(rest, &[][..]);
-        assert_eq!(ag_type, (AddressingMode::ZPG, Value::Short(0x23)));
+        assert_eq!(arg_type, (AddressingMode::ZPG, Value::Short(0x23)));
     }
     #[test]
     fn test_hex_addr_long() {
