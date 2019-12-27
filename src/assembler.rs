@@ -72,7 +72,25 @@ pub fn assemble(parsed_code: Vec<LineType>) -> Result<[u8; 0x10000], Error> {
                 }
                 println!("Assembling {:?} as {:#04X}", opcode, opcode_number);
             }
-            _ => {}
+            LineType::Macro(name, arg) => match &*name {
+                "org" => {
+                    if let Value::Long(addr) = arg {
+                        code.pointer = addr.into();
+                    } else {
+                        return Err(Error::Parser {
+                            cause: ".org can only be used with long literals".to_string(),
+                        });
+                    }
+                }
+                "byte" => match arg {
+                    Value::Short(value) => code.push_byte(value),
+                    Value::Long(value) => code.push_long(value),
+                    _ => {}
+                },
+                _ => {
+                    eprintln!("Unknown macro {}", name);
+                }
+            },
         };
     }
     // Iterate thru all the defined labels
