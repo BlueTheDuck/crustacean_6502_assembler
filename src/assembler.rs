@@ -127,7 +127,7 @@ mod tests {
             .collect();
         let code: [u8; 0x10000] = assemble(test_code).expect("This shouldn't have errored");
         super::dump(&code, Some(0x80), Some(0x80));
-        assert_eq!(code[0x8000..0x8005], [0xA9, 0xFF, 0x85, 0xFF, 0x18]);
+        assert_eq!(code[0x0000..0x0005], [0xA9, 0xFF, 0x85, 0xFF, 0x18]);
     }
     #[test]
     fn test_labels() {
@@ -145,7 +145,7 @@ mod tests {
             .map(|l: &str| parse_line(l.as_bytes()).unwrap().1)
             .collect();
         let code = assemble(test_code).unwrap();
-        assert_eq!(code[0x8000..0x8003], [0xAD, 0x00, 0x80]);
+        assert_eq!(code[0x0000..0x0003], [0xAD, 0x00, 0x00]);
     }
 }
 
