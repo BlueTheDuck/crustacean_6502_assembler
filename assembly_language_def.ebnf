@@ -12,7 +12,7 @@ bin_value = "#", "%", bin_digit, bin_digit, bin_digit, bin_digit, bin_digit, bin
 label_name = [ "_" ], { letter | digit | symbol };
 
 opcode = letter, letter, letter;
-arg = label_name | hex_value | hex_addr_long | bin_value | hex_addr_short;
+arg = hex_addr_short | hex_addr_long | hex_value | bin_value | label_name;
 
 label_def = label_name, ":";
 instruction = margin, opcode, [ " ", arg ];

@@ -9,6 +9,18 @@ fn u8_to_hex(v: &[u8]) -> Result<usize, ()> {
     let text = from_utf8(v).map_err(|_| ())?;
     usize::from_str_radix(text, 16).map_err(|_| ())
 }
+fn bin_to_hex(v: &[u8]) -> Result<usize, ()> {
+    Ok(v.to_vec()
+        .iter()
+        .map(|bit| match bit {
+            b'0' => Ok(0),
+            b'1' => Ok(1),
+            _ => Err(()),
+        })
+        .collect::<Result<Vec<usize>, ()>>()?
+        .iter()
+        .fold(0usize, |value: usize, bit| value * 2 + bit))
+}
 
 // #region Types
 pub type NomError<'i> = nom::Err<(&'i [u8], nom::error::ErrorKind)>;
@@ -59,6 +71,13 @@ fn hex_value(input: &[u8]) -> IResult<&[u8], ArgumentType> {
     let (input, _) = eof(input)?;
     Ok((input, (AddressingMode::IMM, Value::Short(value as u8))))
 }
+fn bin_value(input: &[u8]) -> IResult<&[u8], ArgumentType> {
+    let (input, _) = character::streaming::char('#')(input)?;
+    let (input, _) = character::streaming::char('%')(input)?;
+    let (input, value) = combinator::map_res(bytes::take(8usize), bin_to_hex)(input)?;
+    let (input, _) = eof(input)?;
+    Ok((input, (AddressingMode::IMM, Value::Short(value as u8))))
+}
 // TODO: Improve label recognition
 fn label_name(input: &[u8]) -> IResult<&[u8], ArgumentType> {
     let (input, value) = combinator::map_res(character::complete::alphanumeric1, |s: &[u8]| {
@@ -68,7 +87,13 @@ fn label_name(input: &[u8]) -> IResult<&[u8], ArgumentType> {
     Ok((input, (AddressingMode::ABS, Value::Label(value))))
 }
 fn argument(input: &[u8]) -> IResult<&[u8], ArgumentType> {
-    nom::branch::alt((hex_addr_short, hex_addr_long, hex_value, label_name))(input)
+    nom::branch::alt((
+        hex_addr_short,
+        hex_addr_long,
+        hex_value,
+        bin_value,
+        label_name,
+    ))(input)
 }
 // #endregion
 // #region Types
@@ -131,6 +156,31 @@ named!(
 
 mod tests {
     // #region Arguements
+    #[test]
+    fn test_bin() {
+        use super::bin_value;
+        use crate::parser::Value;
+        let tests_ok = [
+            &b"#%11111111",
+            &b"#%11111101",
+            &b"#%01010101",
+            &b"#%11100111",
+            &b"#%00000000",
+        ];
+        let oks_exp = [
+            Value::Short(0b1111_1111),
+            Value::Short(0b1111_1101),
+            Value::Short(0b0101_0101),
+            Value::Short(0b1110_0111),
+            Value::Short(0b0000_0000),
+        ];
+        for (&test, ok) in tests_ok.iter().zip(&oks_exp) {
+            let (rest, arg_type) = bin_value(*test).expect("This should have been an Ok");
+            assert_eq!(rest, &[][..]);
+            assert_eq!(&arg_type.1, ok);
+        }
+    }
+
     #[test]
     fn test_hex_addr_short() {
         use super::hex_addr_short;
