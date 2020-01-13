@@ -1,5 +1,5 @@
 use super::arguments::parse_argument;
-use super::helpers::{bin_to_hex, eof, margin, u8_to_hex};
+use super::helpers::{eof, margin};
 use super::nom;
 use super::types::{LineType, Opcode};
 use super::OpcodeType;

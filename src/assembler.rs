@@ -38,7 +38,7 @@ impl Code {
 }
 
 pub fn assemble(parsed_code: Vec<LineType>) -> Result<[u8; 0x10000], Error> {
-    // cart: holds the code
+    // code: holds the code
     // labels: holds the addrs of each label
     // labels_used_on: holds the addresses where a label was used
     let mut code = Code::new();
@@ -103,7 +103,7 @@ pub fn assemble(parsed_code: Vec<LineType>) -> Result<[u8; 0x10000], Error> {
             Some(v) => v,
         };
         for address in addresses_where_used {
-            code.pointer = address + 1;
+            code.pointer = address;
             code.push_long(labels[label] as u16);
         }
     }
