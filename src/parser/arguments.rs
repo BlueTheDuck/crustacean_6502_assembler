@@ -1,39 +1,47 @@
 use super::{bin_to_hex, eof, u8_to_hex};
 use super::{AddressingMode, ArgumentType, Value};
 use crate::nom;
-use nom::{bytes::complete as bytes, character, combinator, IResult};
+use nom::{bytes::complete as bytes, character, combinator, sequence, IResult};
 
 // #region Parsers
 fn hex_addr_short(input: &[u8]) -> IResult<&[u8], ArgumentType> {
-    let (input, _) = character::streaming::char('$')(input)?;
+    let (input, _) = character::complete::char('$')(input)?;
     let (input, value) = combinator::map_res(bytes::take(2usize), u8_to_hex)(input)?;
     let (input, _) = eof(input)?;
     Ok((input, (AddressingMode::ZPG, Value::Short(value as u8))))
 }
 
 fn hex_addr_long(input: &[u8]) -> IResult<&[u8], ArgumentType> {
-    let (input, _) = character::streaming::char('$')(input)?;
+    let (input, _) = character::complete::char('$')(input)?;
     let (input, value) = combinator::map_res(bytes::take(4usize), u8_to_hex)(input)?;
     let (input, _) = eof(input)?;
     Ok((input, (AddressingMode::ABS, Value::Long(value as u16))))
 }
 
 fn hex_value(input: &[u8]) -> IResult<&[u8], ArgumentType> {
-    let (input, _) = character::streaming::char('#')(input)?;
-    let (input, _) = character::streaming::char('$')(input)?;
+    let (input, _) = character::complete::char('#')(input)?;
+    let (input, _) = character::complete::char('$')(input)?;
     let (input, value) = combinator::map_res(bytes::take(2usize), u8_to_hex)(input)?;
     let (input, _) = eof(input)?;
     Ok((input, (AddressingMode::IMM, Value::Short(value as u8))))
 }
 
 fn bin_value(input: &[u8]) -> IResult<&[u8], ArgumentType> {
-    let (input, _) = character::streaming::char('#')(input)?;
-    let (input, _) = character::streaming::char('%')(input)?;
+    let (input, _) = character::complete::char('#')(input)?;
+    let (input, _) = character::complete::char('%')(input)?;
     let (input, value) = combinator::map_res(bytes::take(8usize), bin_to_hex)(input)?;
     let (input, _) = eof(input)?;
     Ok((input, (AddressingMode::IMM, Value::Short(value as u8))))
 }
 
+fn indexed_indirect(input: &[u8]) -> IResult<&[u8], ArgumentType> {
+    let (input, _) = character::complete::char('(')(input)?;
+    let (input, _) = character::complete::char('$')(input)?;
+    let (input, value) = combinator::map_res(bytes::take(2usize), u8_to_hex)(input)?;
+    let (input, _) = bytes::tag(",X")(input)?;
+    let (input, _) = character::complete::char(')')(input)?;
+    Ok((input, (AddressingMode::INDX, Value::Short(value as u8))))
+}
 // TODO: Improve label recognition
 fn label_name(input: &[u8]) -> IResult<&[u8], ArgumentType> {
     let (input, value) = combinator::map_res(character::complete::alphanumeric1, |s: &[u8]| {
@@ -49,6 +57,7 @@ fn argument(input: &[u8]) -> IResult<&[u8], ArgumentType> {
         hex_addr_long,
         hex_value,
         bin_value,
+        indexed_indirect,
         label_name,
     ))(input)
 }
@@ -58,7 +67,7 @@ pub fn parse_argument(input: &[u8]) -> IResult<&[u8], ArgumentType> {
     if input.is_empty() {
         return Ok((input, (AddressingMode::IMPL, Value::None)));
     }
-    let (input, _) = character::streaming::char(' ')(input)?;
+    let (input, _) = character::complete::char(' ')(input)?;
     if input.is_empty() {
         return Ok((input, (AddressingMode::IMPL, Value::None)));
     }
@@ -102,12 +111,12 @@ mod tests {
         use crate::addressing_modes::AddressingMode;
         use crate::parser::{ArgumentType, Value};
         use nom::{error::ErrorKind, Err as NErr};
-        let tests_error = [&b"$2A43"[..], &b"bd23"[..], &b"$23sd"[..], &b""[..]];
+        let tests_error = [&b"$2A43"[..], &b"bd23"[..], &b"$23sd"[..], &b"$0"[..]];
         let errors_exp = [
             NErr::Error((&b"43"[..], ErrorKind::Eof)),
             NErr::Error((&b"bd23"[..], ErrorKind::Char)),
             NErr::Error((&b"sd"[..], ErrorKind::Eof)),
-            NErr::Incomplete(nom::Needed::Size(1)),
+            NErr::Error((&b"0"[..], ErrorKind::Eof)),
         ];
         for (test, error) in tests_error.iter().zip(errors_exp.iter()) {
             let res: NErr<(&[u8], ErrorKind)> = hex_addr_short(test)
@@ -151,16 +160,36 @@ mod tests {
         let res = label_name(&b"hello"[..]);
         println!("{:?}", res);
     }
+
+    #[test]
+    fn test_ind_x() {
+        use super::indexed_indirect;
+        use super::{AddressingMode, Value};
+
+        let test = b"($02,X)";
+        let res = indexed_indirect(test);
+        println!("{:#?}", res);
+        res.expect(":(");
+        //assert_eq!(res, (AddressingMode::INDX, Value::Short(0x02)));
+    }
+
     #[test]
     fn test_argument() {
         use super::super::{types::Value, AddressingMode};
         use super::argument;
-        let tests = [&b"#$AD"[..], &b"$ADDE"[..], &b"$AD"[..], &b"Hello"[..]];
+        let tests = [
+            &b"#$AD"[..],
+            &b"$ADDE"[..],
+            &b"$AD"[..],
+            &b"Hello"[..],
+            &b"($FE,X)"[..],
+        ];
         let tests_results = [
             (AddressingMode::IMM, Value::Short(0xAD)),
             (AddressingMode::ABS, Value::Long(0xADDE)),
             (AddressingMode::ZPG, Value::Short(0xAD)),
             (AddressingMode::ABS, Value::Label("Hello".to_string())),
+            (AddressingMode::INDX, Value::Short(0xFE)),
         ];
         for (test, exp) in tests.iter().zip(tests_results.iter()) {
             let (_, res) = argument(test).expect("This shouldn't haver errored");

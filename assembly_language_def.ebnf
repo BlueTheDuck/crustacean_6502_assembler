@@ -9,6 +9,7 @@ hex_addr_short = "$", hex_digit, hex_digit;
 hex_addr_long = hex_addr_short, hex_digit, hex_digit;
 hex_value = "#", "$", hex_digit, hex_digit;
 bin_value = "#", "%", bin_digit, bin_digit, bin_digit, bin_digit, bin_digit, bin_digit, bin_digit, bin_digit;
+indexed_indirect = "(", hex_addr_short , "X,)";
 label_name = [ "_" ], { letter | digit | symbol };
 
 opcode = letter, letter, letter;

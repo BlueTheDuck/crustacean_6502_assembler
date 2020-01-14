@@ -51,6 +51,10 @@ fn main() -> Result<(), error::Error> {
     let code: Vec<LineType> = input_buf
         .lines()
         .map(|line| line.map_err(|e| e.into()))
+        .filter(|line| match line {
+            Ok(line) => !line.is_empty(),
+            Err(_) => true,
+        })
         .map(|line: Result<String, Error>| match line {
             Ok(line) => parser::parse_line(line.as_bytes())
                 .map_err(|e| e.into())
