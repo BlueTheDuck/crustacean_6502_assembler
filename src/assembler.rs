@@ -38,12 +38,17 @@ impl Code {
 }
 
 pub fn assemble(parsed_code: Vec<LineType>) -> Result<[u8; 0x10000], Error> {
+    #[derive(Debug, Copy, Clone)]
+    struct LabelUse {
+        location: usize,
+        is_relative: bool,
+    }
     // code: holds the code
     // labels: holds the addrs of each label
     // labels_used_on: holds the addresses where a label was used
     let mut code = Code::new();
     let mut labels: HashMap<String, usize> = HashMap::default();
-    let mut labels_used_on: HashMap<String, Vec<usize>> = HashMap::default();
+    let mut labels_used_on: HashMap<String, Vec<LabelUse>> = HashMap::default();
 
     for line in parsed_code {
         match line {
@@ -58,10 +63,14 @@ pub fn assemble(parsed_code: Vec<LineType>) -> Result<[u8; 0x10000], Error> {
                     Value::Long(long) => code.push_long(*long),
                     Value::Short(short) => code.push_byte(*short),
                     Value::Label(name) => {
+                        let label_use = LabelUse {
+                            location: code.pointer,
+                            is_relative: opcode.name.is_branch_op(),
+                        };
                         if let Some(addresses) = labels_used_on.get_mut(name) {
-                            addresses.push(code.pointer);
+                            addresses.push(label_use);
                         } else {
-                            labels_used_on.insert(name.clone(), [code.pointer].to_vec());
+                            labels_used_on.insert(name.clone(), vec![label_use]);
                         }
                         // Since we don't know what to place here, just skip the argument (-1 for the opcode)
                         code.skip(size - 1);
@@ -96,15 +105,23 @@ pub fn assemble(parsed_code: Vec<LineType>) -> Result<[u8; 0x10000], Error> {
     // removing them from the list of used_labels
     // and placing their address in the whitespaces left
     // on the assembling stage
-    for label in labels.keys() {
+    for (label, l_address) in labels.keys().zip(labels.values()) {
         // Skip if the label wasn't used
-        let addresses_where_used = match labels_used_on.remove(label) {
+        let addresses_where_used: Vec<LabelUse> = match labels_used_on.remove(label) {
             None => continue,
             Some(v) => v,
         };
         for address in addresses_where_used {
-            code.pointer = address;
-            code.push_long(labels[label] as u16);
+            code.pointer = address.location;
+            if address.is_relative {
+                // Calc de diff between the 2 addresses
+                // The +2 is to skip the opcode's argument
+                let relative = (*l_address as isize) - (address.location as isize + 1);
+                let relative = (relative & 0xFF) as u8;
+                code.push_byte(relative);
+            } else {
+                code.push_long(labels[label] as u16);
+            }
         }
     }
     if !labels_used_on.is_empty() {
