@@ -55,6 +55,10 @@ fn main() -> Result<(), error::Error> {
             Ok(line) => !line.is_empty(),
             Err(_) => true,
         })
+        .map(|line: Result<String, _>| match line {
+            Ok(line) => Ok(String::from(line.split(';').next().unwrap())), // Remove comments
+            Err(e) => Err(e),
+        })
         .map(|line: Result<String, Error>| match line {
             Ok(line) => parser::parse_line(line.as_bytes())
                 .map_err(|e| e.into())
