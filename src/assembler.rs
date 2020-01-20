@@ -80,25 +80,46 @@ pub fn assemble(parsed_code: Vec<LineType>) -> Result<[u8; 0x10000], Error> {
                 }
                 println!("Assembling {:?} as {:#04X}", opcode, opcode_number);
             }
-            LineType::Macro(name, arg) => match &*name {
-                "org" => {
-                    if let Value::Long(addr) = arg {
-                        code.pointer = addr.into();
-                    } else {
-                        return Err(Error::Parser {
-                            cause: ".org can only be used with long literals".to_string(),
-                        });
+            LineType::Macro(r#type, arg) => {
+                println!("Interpreting macro {:?} {:?}", r#type, arg);
+                match &*r#type {
+                    "org" => {
+                        if let Value::Long(addr) = arg {
+                            code.pointer = addr.into();
+                        } else {
+                            return Err(Error::Parser {
+                                cause: ".org can only be used with long literals".to_string(),
+                            });
+                        }
+                    }
+                    "byte" => match arg {
+                        Value::Short(value) => code.push_byte(value),
+                        Value::Long(value) => code.push_long(value),
+                        _ => {}
+                    },
+                    "dw" => match arg {
+                        Value::Long(value) => code.push_long(value),
+                        Value::Label(name) => {
+                            let label_use = LabelUse {
+                                location: code.pointer,
+                                is_relative: false,
+                            };
+                            if let Some(addresses) = labels_used_on.get_mut(&name) {
+                                addresses.push(label_use);
+                            } else {
+                                labels_used_on.insert(name.clone(), vec![label_use]);
+                            }
+                            code.pointer += 2;
+                        }
+                        _ => {
+                            unimplemented!("{:?} is not implemented for .dw", arg);
+                        }
+                    },
+                    _ => {
+                        eprintln!("Unknown macro {}", r#type);
                     }
                 }
-                "byte" => match arg {
-                    Value::Short(value) => code.push_byte(value),
-                    Value::Long(value) => code.push_long(value),
-                    _ => {}
-                },
-                _ => {
-                    eprintln!("Unknown macro {}", name);
-                }
-            },
+            }
         };
     }
     // Iterate through all the defined labels
@@ -115,7 +136,7 @@ pub fn assemble(parsed_code: Vec<LineType>) -> Result<[u8; 0x10000], Error> {
             code.pointer = address.location;
             if address.is_relative {
                 // Calc de diff between the 2 addresses
-                // The +2 is to skip the opcode's argument
+                // The +1 is to skip the opcode's argument
                 let relative = (*l_address as isize) - (address.location as isize + 1);
                 let relative = (relative & 0xFF) as u8;
                 code.push_byte(relative);
