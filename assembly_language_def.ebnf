@@ -20,3 +20,4 @@ instruction = margin, opcode, [ " ", arg ];
 macro = ".", letter, { letter }, [ " ", arg ];
 
 line = label_def | instruction | macro;
+comment = [ line ], ";", ? TEXT ? ;
