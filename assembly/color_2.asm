@@ -1,13 +1,8 @@
-.org $0600
+.org $0000
+.dw $0200
+.byte $00
 
-    LDA #$02
-    STA $01
-    LDA #$00
-    STA $00
-
-    LDA #$00
-	STA $02
-
+.org $8000
 loop:
     LDA $02
     STA ($00,X)
@@ -18,6 +13,13 @@ loop:
     ADC #$01
     STA $00
 	BNE loop
-    JMP end
-end:
-	NOP
+
+    LDA $02
+    ADC #$01
+    STA $02
+    JMP loop
+
+.org $FFFA; Vectors
+.dw $0000; INT
+.dw loop; Reset
+.dw $0000; NMI
