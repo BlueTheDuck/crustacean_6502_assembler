@@ -8,17 +8,30 @@ pub static OP_SIZES: [usize; 13] = [1, 3, 3, 3, 2, 1, 3, 2, 2, 2, 2, 2, 2];
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum AddressingMode {
-    A = 0, // LSR A
-    ABS,   // LDA $1234
-    ABSX,  // STA $3000,X
-    ABSY,  // AND $4000,Y
-    IMM,   // LDA #$10
-    IMPL,  // CLC
-    IND,   // JMP ($FFFC)
-    INDX,  // LDA ($40,X)
-    INDY,  // LDA ($40),Y
-    REL,   // LABEL // +4
-    ZPG,   // LDA $10
-    ZPGX,  // LDA $10,X
-    ZPGY,  // LDA $10,Y
+    /// Ej.: `LSR A`
+    A,
+    /// Ej.: `LDA $1234`
+    ABS,
+    /// Ej.: `STA $3000,X`
+    ABSX,
+    /// Ej.: `AND $4000,Y`
+    ABSY,
+    /// Ej.: `LDA #$10`
+    IMM,
+    /// Ej.: `CLC`
+    IMPL,
+    /// Ej.: `JMP ($FFFC)`
+    IND,
+    /// Ej.: `LDA ($40,X)`
+    INDX,
+    /// Ej.: `LDA ($40),Y`
+    INDY,
+    /// Ej.: `LABEL // +4`
+    REL,
+    /// Ej.: `LDA $10`
+    ZPG,
+    /// Ej.: `LDA $10,X`
+    ZPGX,
+    /// Ej.: `LDA $10,Y`
+    ZPGY,
 }
