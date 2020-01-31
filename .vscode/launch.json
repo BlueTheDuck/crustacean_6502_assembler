@@ -7,6 +7,24 @@
         {
             "type": "lldb",
             "request": "launch",
+            "name": "Cargo launch",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--"
+                ]
+            },
+            "program": "${cargo:program}",
+            "args": [
+                "--input",
+                "assembly/nes/background.asm",
+                "--format",
+                "Nes2"
+            ]
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
             "name": "Debug executable",
             "cargo": {
                 "args": [
