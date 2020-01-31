@@ -62,6 +62,8 @@ pub fn assemble(parsed_code: Vec<LineType>, metadata: &Metadata) -> Result<[u8; 
     let mut code = Code::new(); // code: holds the code
     let mut labels: HashMap<String, usize> = HashMap::default(); // labels: holds the addrs of each label
     let mut labels_used_on: HashMap<String, Vec<LabelUse>> = HashMap::default(); // labels_used_on: holds the addresses where a label was used
+    let mut bank: usize = 0;
+    let mut banks_usage: Vec<Option<usize>> = vec![None; 4];
     for line in parsed_code {
         match line {
             LineType::LabelDef(name) => {
@@ -177,6 +179,14 @@ pub fn assemble(parsed_code: Vec<LineType>, metadata: &Metadata) -> Result<[u8; 
                             })
                         }
                     },
+                    "bank" => {
+                        if let Value::Label(id) = arg {
+                            let new_bank: usize = id.parse().expect("Banks use numerical IDs");
+                            println!("Bank {}", new_bank);
+                            banks_usage[bank] = Some(code.pointer);
+                            bank = new_bank;
+                        }
+                    }
                     _ => {
                         return Err(Error::Assembler {
                             cause: format!(
@@ -189,6 +199,7 @@ pub fn assemble(parsed_code: Vec<LineType>, metadata: &Metadata) -> Result<[u8; 
             }
         };
     }
+    println!("Banks: {:X?} // Last {:?}", banks_usage, bank);
     // Iterate through all the defined labels
     // removing them from the list of used_labels
     // and placing their address in the whitespaces left
