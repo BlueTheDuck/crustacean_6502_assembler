@@ -52,10 +52,10 @@ fn main() -> Result<(), error::Error> {
         .lines()
         .map(|line: Result<String, std::io::Error>| {
             let line: String = line?
-                .trim()
                 .split(';')
                 .next()
                 .unwrap_or_default()
+                .trim()
                 .to_owned();
             Ok(line)
         })
