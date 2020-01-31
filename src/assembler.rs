@@ -187,6 +187,25 @@ pub fn assemble(parsed_code: Vec<LineType>, metadata: &Metadata) -> Result<[u8; 
                             bank = new_bank;
                         }
                     }
+                    "incbin" if arg.is_text() => {
+                        if let Value::Text(arg) = arg {
+                            let arg = String::from_utf8(arg.into_vec())
+                                .expect("File name wasn't an UTF-8 string");
+                            let mut path =
+                                std::path::PathBuf::from(metadata.search_path.as_os_str());
+                            path.push(arg);
+                            println!("Including bytes from {}", path.display());
+                            let mut file = File::open(path)?;
+                            let file_size = file.metadata()?.len();
+                            let mut buffer = Vec::with_capacity(file_size as usize);
+                            file.read_to_end(&mut buffer)?;
+                            println!("Inserting {} bytes", buffer.len());
+                            for byte in buffer {
+                                code.push_byte(byte);
+                            }
+                        } else {
+                        }
+                    }
                     _ => {
                         return Err(Error::Assembler {
                             cause: format!(
