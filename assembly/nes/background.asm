@@ -75,11 +75,4 @@ NMI:
   
   .bank 2
   .org $0000
-.dw $FAFA
-.dw $FAFA
-.dw $FAFA
-.dw $FAFA
-.dw $FAFA
-.dw $FAFA
-.dw $FAFA
-;  .incbin "mario.chr"   ;includes 8KB graphics file from SMB1
+  .incbin "mario.chr"   ;includes 8KB graphics file from SMB1

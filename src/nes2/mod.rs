@@ -2,7 +2,7 @@ mod rom_data {
     pub static HEADER_MAGIC_NUMBER: &'static [u8; 4] = b"NES\x1A";
     pub static HEADER_NES2_IDENT: u8 = 0b0000_1000;
     pub static HEADER_CONSOLE_TYPE: u8 = 0b0000_0000;
-    pub static BANK_SIZE: usize = 0x4000;
+    pub static BANK_SIZE: usize = 0x2000; // 8KiB
     pub enum TimingMode {
         Ntsc = 0,
         Pal = 1,
@@ -23,7 +23,7 @@ pub struct Cartridge {
 }
 impl Cartridge {
     pub fn new(code: &[u8], banks: Vec<usize>) -> Self {
-        let prg_rom_size: u16 = 0x002; // Check here: https://wiki.nesdev.com/w/index.php/NES_2.0#PRG-ROM_Area
+        let prg_rom_size: u16 = 0x001; // Check here: https://wiki.nesdev.com/w/index.php/NES_2.0#PRG-ROM_Area
         let chr_rom_size: u16 = 0x001;
         let prg_ram_size: u8 = 0x00;
         let eeprom_size: u8 = 0x00;
@@ -55,9 +55,6 @@ impl Cartridge {
         };
         let mut prg_rom_area: Vec<u8> = vec![0; prg_rom_real_size];
         println!("Created PRG-ROM with {} bytes", prg_rom_area.len());
-        /* for i in 0..prg_rom_real_size {
-            prg_rom_area[i] = code[];
-        } */
         for (i, bank) in banks.iter().enumerate() {
             if i == 2 {
                 continue;
@@ -69,10 +66,10 @@ impl Cartridge {
                 if rom_idx >= prg_rom_area.len() || code_idx >= code.len() {
                     panic!(
                         r#"Out-of-bounds exception:
-  rom_idx: {:#06X}. Rom Size: {:#06X}
-  code_idx: {:#06X}. Code Size: {:#06X}
-  Bank: {} / Addr {:#06X}
-"#,
+          rom_idx: {:#06X}. Rom Size: {:#06X}
+          code_idx: {:#06X}. Code Size: {:#06X}
+          Bank: {} / Addr {:#06X}
+        "#,
                         rom_idx,
                         prg_rom_area.len(),
                         code_idx,

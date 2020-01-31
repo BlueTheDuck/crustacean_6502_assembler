@@ -108,7 +108,7 @@ fn main() -> Result<(), error::Error> {
     match args.format {
         Format::Hex => output_buf.write_all(&code)?,
         Format::Nes2 => {
-            let cart: Vec<u8> = nes2::Cartridge::new(&code, vec![0xC000, 0xC000, 0x0000]).into();
+            let cart: Vec<u8> = nes2::Cartridge::new(&code, vec![0xC000, 0xE000, 0x0000]).into();
             output_buf.write_all(&cart)?;
         }
     }
