@@ -5,15 +5,17 @@ hex_digit = digits | "A" | "B" | "C" | "D" | "E" | "F";
 letter = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J" | "K" | "L" | "M" | "N" | "O" | "P" | "Q" | "R" | "S" | "T" | "U" | "V" | "W" | "X" | "Y" | "Z" ;
 symbol = "_" | "-";
 
+a = "A";
 hex_addr_short = "$", hex_digit, hex_digit;
 hex_addr_long = hex_addr_short, hex_digit, hex_digit;
 hex_value = "#", "$", hex_digit, hex_digit;
 bin_value = "#", "%", bin_digit, bin_digit, bin_digit, bin_digit, bin_digit, bin_digit, bin_digit, bin_digit;
 indexed_indirect = "(", hex_addr_short , "X,)";
+absolute_indexed = hex_addr_long,",", ( "X" | "Y" );
 label_name = [ "_" ], { letter | digit | symbol };
 
 opcode = letter, letter, letter;
-arg = hex_addr_short | hex_addr_long | hex_value | bin_value | label_name;
+arg = a | hex_addr_short | hex_addr_long | absolute_indexed | hex_value | bin_value | label_name;
 
 label_def = label_name, ":";
 instruction = margin, opcode, [ " ", arg ];
