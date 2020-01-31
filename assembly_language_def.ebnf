@@ -3,7 +3,8 @@ bin_digit = "0" | "1";
 digit = bin_digit | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
 hex_digit = digits | "A" | "B" | "C" | "D" | "E" | "F";
 letter = "A" | "B" | "C" | "D" | "E" | "F" | "G" | "H" | "I" | "J" | "K" | "L" | "M" | "N" | "O" | "P" | "Q" | "R" | "S" | "T" | "U" | "V" | "W" | "X" | "Y" | "Z" ;
-symbol = "_" | "-";
+symbol = ? ASCII GRAPHIC, ASCII PUNCTUATION ?;
+text = { symbol | ? ASCII ALPHANUMERIC ?   };
 
 a = "A";
 hex_addr_short = "$", hex_digit, hex_digit;
@@ -12,14 +13,15 @@ hex_value = "#", "$", hex_digit, hex_digit;
 bin_value = "#", "%", bin_digit, bin_digit, bin_digit, bin_digit, bin_digit, bin_digit, bin_digit, bin_digit;
 indexed_indirect = "(", hex_addr_short , "X,)";
 absolute_indexed = hex_addr_long,",", ( "X" | "Y" );
-label_name = [ "_" ], { letter | digit | symbol };
+label_name = [ "_" ], { letter | digit };
+text = ? DOUBLE QUOTES ?, text, ? DOUBLE QUOTES ?;
 
 opcode = letter, letter, letter;
-arg = a | hex_addr_short | hex_addr_long | absolute_indexed | hex_value | bin_value | label_name;
+arg = a | hex_addr_short | hex_addr_long | absolute_indexed | hex_value | bin_value | indexed_indirect | label_name | text;
 
 label_def = label_name, ":";
 instruction = margin, opcode, [ " ", arg ];
 macro = ".", letter, { letter }, [ " ", arg ];
 
 line = label_def | instruction | macro;
-comment = [ line ], ";", ? TEXT ? ;
+comment = [ line ], ";", text ;
