@@ -1,4 +1,4 @@
-use super::{bin_to_hex, eof, is_symbol, is_text, u8_to_hex};
+use super::{bin_to_hex, eof, is_symbol, u8_to_hex};
 use super::{AddressingMode, ArgumentType, Value};
 use crate::nom;
 use nom::{bytes::complete as bytes, character, combinator, sequence, IResult};
@@ -64,20 +64,23 @@ fn indexed_indirect(input: &[u8]) -> IResult<&[u8], ArgumentType> {
 }
 
 // TODO: Improve label recognition
-fn label_name(input: &[u8]) -> IResult<&[u8], ArgumentType> {
-    let (input, value) = combinator::map_res(character::complete::alphanumeric1, |s: &[u8]| {
-        String::from_utf8(s.to_vec())
-    })(input)?;
-    let (input, _) = eof(input)?;
-    Ok((input, (AddressingMode::ABS, Value::Label(value))))
-}
+named!(
+    label_name<&[u8],ArgumentType>,
+    do_parse!(
+        name: map_res!(take_while!(|c: u8| c.is_ascii_alphanumeric()), |s: &[u8]| {
+            String::from_utf8(s.to_vec())
+        })
+        >> eof!()
+        >> ((AddressingMode::ABS, Value::Label(name)))
+    )
+);
 
 // text
 named!(
     text<&[u8],ArgumentType>,
     do_parse!(
-        text: delimited!(char!('"'), is_text, char!('"'))
-            >> ((AddressingMode::ABS, Value::Text(Box::from(text))))
+        text: delimited!(char!('\"'), take_while!(|c|(is_symbol(c)||c.is_ascii_alphanumeric())&&c!=b'"') , char!('\"'))
+        >> ((AddressingMode::ABS, Value::Text(Box::from(text))))
     )
 );
 
@@ -207,11 +210,13 @@ mod tests {
         //assert_eq!(res, (AddressingMode::INDX, Value::Short(0x02)));
     }
 
+    #[test]
     fn test_text() {
         let tests = [r#""Hello""#, r#""123.456""#, r#""hello.world""#];
         for test in &tests {
             let test = test.as_bytes();
-            let text = super::text(test).unwrap_or_else(|_| panic!("Test failed: {:?}", test));
+            let text =
+                super::text(test).unwrap_or_else(|e| panic!("Test failed: {:?}. {:?}", test, e));
         }
     }
 

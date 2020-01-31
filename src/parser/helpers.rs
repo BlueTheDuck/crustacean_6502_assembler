@@ -22,13 +22,6 @@ named!(pub eof, eof!());
 // TODO: Improve margin recognition
 named!(pub margin<&[u8]>, take_while!(character::is_space));
 
-named!(pub is_text,
-    do_parse!(
-        text: take_while!(|c|is_symbol(c)||c.is_ascii_alphanumeric()) 
-        >> (text)
-    )
-);
-
 pub fn is_symbol(c: u8) -> bool {
     c.is_ascii_graphic() || c.is_ascii_punctuation()
 }
