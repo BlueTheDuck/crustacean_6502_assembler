@@ -48,24 +48,29 @@ fn main() -> Result<(), error::Error> {
             .unwrap_or_else(|e| panic!("Could not open output file. Error: {:?}", e)),
     );
 
-    let code: Vec<LineType> = input_buf
+    let code: Vec<_> = input_buf
         .lines()
-        .map(|line| line.map_err(|e| e.into()))
-        .filter(|line| match line {
+        .map(|line: Result<String, std::io::Error>| {
+            let line: String = line?
+                .trim()
+                .split(';')
+                .next()
+                .unwrap_or_default()
+                .to_owned();
+            Ok(line)
+        })
+        .filter(|line: &Result<_, _>| match line {
             Ok(line) => !line.is_empty(),
             Err(_) => true,
         })
-        .map(|line: Result<String, _>| match line {
-            Ok(line) => Ok(String::from(line.split(';').next().unwrap())), // Remove comments
-            Err(e) => Err(e),
+        .map(|line: Result<String, Error>| {
+            line.and_then(|line| {
+                parser::parse_line(line.as_bytes())
+                    .map(|(_, line)| line)
+                    .map_err(Into::into)
+            })
         })
-        .map(|line: Result<String, Error>| match line {
-            Ok(line) => parser::parse_line(line.as_bytes())
-                .map_err(|e| e.into())
-                .map(|(_, line)| line),
-            Err(e) => Err(e),
-        })
-        .collect::<Result<_, _>>()?;
+        .collect::<Result<_, Error>>()?;
     let code = assemble(code)?;
     output_buf.write_all(&code)?;
 
