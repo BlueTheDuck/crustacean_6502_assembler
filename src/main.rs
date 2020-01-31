@@ -78,7 +78,7 @@ fn main() -> Result<(), error::Error> {
         assembler::Metadata { search_path }
     };
 
-    let code = assemble(code, metadata)?;
+    let code = assemble(code, &metadata)?;
     output_buf.write_all(&code)?;
 
     Ok(())

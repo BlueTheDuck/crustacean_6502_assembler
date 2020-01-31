@@ -12,6 +12,28 @@
                 "args": [
                     "build",
                     "--bin=crustacean_6502_assembler",
+                    "--package=crustacean_6502_assembler",
+                    "--",
+                ],
+                "filter": {
+                    "name": "crustacean_6502_assembler",
+                    "kind": "bin"
+                }
+            },
+            "args": [
+                "--input",
+                "assembly/general/macro_test.asm"
+            ],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=crustacean_6502_assembler",
                     "--package=crustacean_6502_assembler"
                 ],
                 "filter": {

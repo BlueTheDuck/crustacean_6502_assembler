@@ -42,6 +42,14 @@ pub struct Metadata {
     /// Where to find include files
     pub search_path: std::path::PathBuf,
 }
+impl std::default::Default for Metadata {
+    fn default() -> Self {
+        Metadata {
+            search_path: std::path::PathBuf::from(""),
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone)]
 struct LabelUse {
     /// Where was this label used?
@@ -50,7 +58,7 @@ struct LabelUse {
     is_relative: bool,
 }
 
-pub fn assemble(parsed_code: Vec<LineType>, metadata: Metadata) -> Result<[u8; 0x10000], Error> {
+pub fn assemble(parsed_code: Vec<LineType>, metadata: &Metadata) -> Result<[u8; 0x10000], Error> {
     let mut code = Code::new(); // code: holds the code
     let mut labels: HashMap<String, usize> = HashMap::default(); // labels: holds the addrs of each label
     let mut labels_used_on: HashMap<String, Vec<LabelUse>> = HashMap::default(); // labels_used_on: holds the addresses where a label was used
@@ -201,12 +209,14 @@ mod tests {
     fn test_assemble() {
         use crate::assembler::assemble;
         use crate::parser::{parse_line, LineType};
+        let metadata = super::Metadata::default();
         let test_code: &str = include_str!("../assembly/general/basic_opcodes.asm");
         let test_code: Vec<LineType> = test_code
             .lines()
             .map(|l: &str| parse_line(l.as_bytes()).unwrap().1)
             .collect();
-        let code: [u8; 0x10000] = assemble(test_code).expect("This shouldn't have errored");
+        let code: [u8; 0x10000] =
+            assemble(test_code, &metadata).expect("This shouldn't have errored");
         super::dump(&code, Some(0x80), Some(0x80));
         assert_eq!(code[0x0000..0x0005], [0xA9, 0xFF, 0x85, 0xFF, 0x18]);
     }
@@ -214,18 +224,19 @@ mod tests {
     fn test_labels() {
         use crate::assembler::assemble;
         use crate::parser::{parse_line, LineType};
+        let metadata = super::Metadata::default();
         let test_code: &str = "\tLDA main";
         let test_code: Vec<LineType> = test_code
             .lines()
             .map(|l: &str| parse_line(l.as_bytes()).unwrap().1)
             .collect();
-        assert!(assemble(test_code).is_err());
+        assert!(assemble(test_code, &metadata).is_err());
         let test_code: &str = "main:\n\tLDA main";
         let test_code: Vec<LineType> = test_code
             .lines()
             .map(|l: &str| parse_line(l.as_bytes()).unwrap().1)
             .collect();
-        let code = assemble(test_code).unwrap();
+        let code = assemble(test_code, &metadata).unwrap();
         assert_eq!(code[0x0000..0x0003], [0xAD, 0x00, 0x00]);
     }
 }

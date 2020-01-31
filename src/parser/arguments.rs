@@ -76,14 +76,24 @@ named!(
 );
 
 // text
+/* named!(
+    text<&[u8],ArgumentType>,
+    do_parse!(
+        char!('"')
+        >>text: take_while!(|c: u8| c!=b'"'&&(c.is_ascii_alphanumeric()||is_symbol(c)) )
+        >> char!('"')
+        >> eof!()
+        >> ((AddressingMode::ABS,Value::Text(Box::from(text))))
+    )
+); */
 named!(
     text<&[u8],ArgumentType>,
     do_parse!(
-        text: delimited!(char!('\"'), take_while!(|c|(is_symbol(c)||c.is_ascii_alphanumeric())&&c!=b'"') , char!('\"'))
+        text: delimited!(char!('\"'), take_while!(|c: u8| c!=b'"'&&(c.is_ascii_alphanumeric()||is_symbol(c))) , char!('\"'))
+        >> eof!()
         >> ((AddressingMode::ABS, Value::Text(Box::from(text))))
     )
 );
-
 //#endregion
 /// Parse argument
 fn argument(input: &[u8]) -> IResult<&[u8], ArgumentType> {
@@ -215,8 +225,9 @@ mod tests {
         let tests = [r#""Hello""#, r#""123.456""#, r#""hello.world""#];
         for test in &tests {
             let test = test.as_bytes();
-            let text =
+            let (_, (_, val)): (_, (_, _)) =
                 super::text(test).unwrap_or_else(|e| panic!("Test failed: {:?}. {:?}", test, e));
+            println!("{:?}", val);
         }
     }
 
