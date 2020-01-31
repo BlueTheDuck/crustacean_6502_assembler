@@ -4,6 +4,11 @@ use crate::nom;
 use nom::{bytes::complete as bytes, character, combinator, sequence, IResult};
 
 // #region Parsers
+fn a(input: &[u8]) -> IResult<&[u8], ArgumentType> {
+    let (input, _) = character::complete::char('A')(input)?;
+    Ok((input, (AddressingMode::A, Value::None)))
+}
+
 fn hex_addr_short(input: &[u8]) -> IResult<&[u8], ArgumentType> {
     let (input, _) = character::complete::char('$')(input)?;
     let (input, value) = combinator::map_res(bytes::take(2usize), u8_to_hex)(input)?;
@@ -42,6 +47,21 @@ fn indexed_indirect(input: &[u8]) -> IResult<&[u8], ArgumentType> {
     let (input, _) = character::complete::char(')')(input)?;
     Ok((input, (AddressingMode::INDX, Value::Short(value as u8))))
 }
+
+named!(
+    absolute_indexed<&[u8],ArgumentType>,
+    do_parse!(
+        char!('$')
+            >> addr: map_res!(take!(4usize),u8_to_hex)
+            >> char!(',')
+            >> reg: alt!(
+                char!('X')  => { |_| AddressingMode::ABSX } |
+                char!('Y')  => { |_| AddressingMode::ABSY }
+            )
+            >> ( (  reg,Value::Long(addr as u16)    )   )
+    )
+);
+
 // TODO: Improve label recognition
 fn label_name(input: &[u8]) -> IResult<&[u8], ArgumentType> {
     let (input, value) = combinator::map_res(character::complete::alphanumeric1, |s: &[u8]| {
@@ -53,8 +73,10 @@ fn label_name(input: &[u8]) -> IResult<&[u8], ArgumentType> {
 
 fn argument(input: &[u8]) -> IResult<&[u8], ArgumentType> {
     nom::branch::alt((
+        a,
         hex_addr_short,
         hex_addr_long,
+        absolute_indexed,
         hex_value,
         bin_value,
         indexed_indirect,
