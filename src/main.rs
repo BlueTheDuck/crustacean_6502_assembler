@@ -71,7 +71,14 @@ fn main() -> Result<(), error::Error> {
             })
         })
         .collect::<Result<_, Error>>()?;
-    let code = assemble(code)?;
+
+    let metadata = {
+        let mut search_path = PathBuf::from(args.input);
+        search_path.pop();
+        assembler::Metadata { search_path }
+    };
+
+    let code = assemble(code, metadata)?;
     output_buf.write_all(&code)?;
 
     Ok(())

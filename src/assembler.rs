@@ -3,6 +3,8 @@ use crate::error::Error;
 use crate::opcodes::get_code;
 use crate::parser::{LineType, Value};
 use std::collections::HashMap;
+use std::fs::File;
+use std::io::Read;
 
 /// 0: Low 1: High
 fn big_to_little_endian(value: u16) -> (u8, u8) {
@@ -36,7 +38,10 @@ impl Code {
         self.pointer += amount;
     }
 }
-
+pub struct Metadata {
+    /// Where to find include files
+    pub search_path: std::path::PathBuf,
+}
 #[derive(Debug, Copy, Clone)]
 struct LabelUse {
     /// Where was this label used?
@@ -45,7 +50,7 @@ struct LabelUse {
     is_relative: bool,
 }
 
-pub fn assemble(parsed_code: Vec<LineType>) -> Result<[u8; 0x10000], Error> {
+pub fn assemble(parsed_code: Vec<LineType>, metadata: Metadata) -> Result<[u8; 0x10000], Error> {
     let mut code = Code::new(); // code: holds the code
     let mut labels: HashMap<String, usize> = HashMap::default(); // labels: holds the addrs of each label
     let mut labels_used_on: HashMap<String, Vec<LabelUse>> = HashMap::default(); // labels_used_on: holds the addresses where a label was used
@@ -74,8 +79,23 @@ pub fn assemble(parsed_code: Vec<LineType>) -> Result<[u8; 0x10000], Error> {
                         // Since we don't know what to place here, just skip the argument (-1 for the opcode)
                         code.skip(size - 1);
                     }
+                    Value::Array(arr) => {
+                        return Err(Error::Assembler {
+                            cause: format!(
+                                "Arrays haven't been implemented yet (Tried to use {:?})",
+                                arr
+                            ),
+                        })
+                    }
+                    Value::Text(txt) => {
+                        return Err(Error::Assembler {
+                            cause: format!(
+                                "Text literals haven't been implemented yet (Tried to use {:?})",
+                                txt
+                            ),
+                        })
+                    }
                     Value::None => {}
-                    Value::Array(_) => panic!("Array?"),
                 }
                 println!("Assembling {:?} as {:#04X}", opcode, opcode_number);
             }
@@ -86,7 +106,7 @@ pub fn assemble(parsed_code: Vec<LineType>) -> Result<[u8; 0x10000], Error> {
                         if let Value::Long(addr) = arg {
                             code.pointer = addr.into();
                         } else {
-                            return Err(Error::Parser {
+                            return Err(Error::Assembler {
                                 cause: ".org can only be used with long literals".to_string(),
                             });
                         }
@@ -114,8 +134,32 @@ pub fn assemble(parsed_code: Vec<LineType>) -> Result<[u8; 0x10000], Error> {
                             unimplemented!("{:?} is not implemented for .dw", arg);
                         }
                     },
+                    "incbin" if arg.is_text() => {
+                        if let Value::Text(arg) = arg {
+                            let arg = String::from_utf8(arg.into_vec())
+                                .expect("File name wasn't an UTF-8 string");
+                            let mut path =
+                                std::path::PathBuf::from(metadata.search_path.as_os_str());
+                            path.push(arg);
+                            println!("Including bytes from {}", path.display());
+                            let mut file = File::open(path)?;
+                            let file_size = file.metadata()?.len();
+                            let mut buffer = Vec::with_capacity(file_size as usize);
+                            file.read_to_end(&mut buffer)?;
+                            println!("Inserting {} bytes", buffer.len());
+                            for byte in buffer {
+                                code.push_byte(byte);
+                            }
+                        } else {
+                        }
+                    }
                     _ => {
-                        eprintln!("Unknown macro {} with arg {:?}", r#type, arg);
+                        return Err(Error::Assembler {
+                            cause: format!(
+                                "Error in macro invocation:\n Name: {}\n Arg {:?} ",
+                                r#type, arg
+                            ),
+                        });
                     }
                 }
             }
@@ -157,7 +201,7 @@ mod tests {
     fn test_assemble() {
         use crate::assembler::assemble;
         use crate::parser::{parse_line, LineType};
-        let test_code: &str = include_str!("../assembly/basic_opcodes.asm");
+        let test_code: &str = include_str!("../assembly/general/basic_opcodes.asm");
         let test_code: Vec<LineType> = test_code
             .lines()
             .map(|l: &str| parse_line(l.as_bytes()).unwrap().1)
