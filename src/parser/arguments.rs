@@ -64,16 +64,13 @@ fn indexed_indirect(input: &[u8]) -> IResult<&[u8], ArgumentType> {
 }
 
 // TODO: Improve label recognition
-named!(
-    label_name<&[u8],ArgumentType>,
-    do_parse!(
-        name: map_res!(take_while!(|c: u8| c.is_ascii_alphanumeric()), |s: &[u8]| {
-            String::from_utf8(s.to_vec())
-        })
-        >> eof!()
-        >> ((AddressingMode::ABS, Value::Label(name)))
-    )
-);
+fn label_name(input: &[u8]) -> IResult<&[u8], ArgumentType> {
+    let (input, value) = combinator::map_res(character::complete::alphanumeric1, |s: &[u8]| {
+        String::from_utf8(s.to_vec())
+    })(input)?;
+    let (input, _) = eof(input)?;
+    Ok((input, (AddressingMode::ABS, Value::Label(value))))
+}
 
 // text
 /* named!(
