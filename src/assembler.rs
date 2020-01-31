@@ -37,19 +37,18 @@ impl Code {
     }
 }
 
-pub fn assemble(parsed_code: Vec<LineType>) -> Result<[u8; 0x10000], Error> {
-    #[derive(Debug, Copy, Clone)]
-    struct LabelUse {
-        location: usize,
-        is_relative: bool,
-    }
-    // code: holds the code
-    // labels: holds the addrs of each label
-    // labels_used_on: holds the addresses where a label was used
-    let mut code = Code::new();
-    let mut labels: HashMap<String, usize> = HashMap::default();
-    let mut labels_used_on: HashMap<String, Vec<LabelUse>> = HashMap::default();
+#[derive(Debug, Copy, Clone)]
+struct LabelUse {
+    /// Where was this label used?
+    location: usize,
+    /// Was this label used for a relative (branch) instruction
+    is_relative: bool,
+}
 
+pub fn assemble(parsed_code: Vec<LineType>) -> Result<[u8; 0x10000], Error> {
+    let mut code = Code::new(); // code: holds the code
+    let mut labels: HashMap<String, usize> = HashMap::default(); // labels: holds the addrs of each label
+    let mut labels_used_on: HashMap<String, Vec<LabelUse>> = HashMap::default(); // labels_used_on: holds the addresses where a label was used
     for line in parsed_code {
         match line {
             LineType::LabelDef(name) => {
@@ -81,7 +80,7 @@ pub fn assemble(parsed_code: Vec<LineType>) -> Result<[u8; 0x10000], Error> {
                 println!("Assembling {:?} as {:#04X}", opcode, opcode_number);
             }
             LineType::Macro(r#type, arg) => {
-                println!("Interpreting macro {:?} {:?}", r#type, arg);
+                println!("Interpreting macro {:?} {:X?}", r#type, arg);
                 match &*r#type {
                     "org" => {
                         if let Value::Long(addr) = arg {
@@ -116,7 +115,7 @@ pub fn assemble(parsed_code: Vec<LineType>) -> Result<[u8; 0x10000], Error> {
                         }
                     },
                     _ => {
-                        eprintln!("Unknown macro {}", r#type);
+                        eprintln!("Unknown macro {} with arg {:?}", r#type, arg);
                     }
                 }
             }
