@@ -2,6 +2,7 @@ use super::{bin_to_hex, eof, is_symbol, u8_to_hex};
 use super::{AddressingMode, ArgumentType, Value};
 use crate::nom;
 use nom::{bytes::complete as bytes, character, combinator, sequence, IResult};
+use std::convert::TryFrom;
 
 // #region Parsers
 fn a(input: &[u8]) -> IResult<&[u8], ArgumentType> {
@@ -73,24 +74,33 @@ fn label_name(input: &[u8]) -> IResult<&[u8], ArgumentType> {
 }
 
 // text
-/* named!(
-    text<&[u8],ArgumentType>,
-    do_parse!(
-        char!('"')
-        >>text: take_while!(|c: u8| c!=b'"'&&(c.is_ascii_alphanumeric()||is_symbol(c)) )
-        >> char!('"')
-        >> eof!()
-        >> ((AddressingMode::ABS,Value::Text(Box::from(text))))
-    )
-); */
 named!(
-    text<&[u8],ArgumentType>,
+    text<&[u8], ArgumentType>,
     do_parse!(
         text: delimited!(char!('\"'), take_while!(|c: u8| c!=b'"'&&(c.is_ascii_alphanumeric()||is_symbol(c))) , char!('\"'))
         >> eof!()
         >> ((AddressingMode::ABS, Value::Text(Box::from(text))))
     )
 );
+
+fn array(input: &[u8]) -> IResult<&[u8], ArgumentType> {
+    let values: Vec<&[u8]> = input
+        .split(|c| c == &b',')
+        .map(|c: &[u8]| match c[0] {
+            b'$' => Ok(&c[1..]),
+            b' ' => Ok(&c[2..]),
+            _ => Err(nom::Err::Error((c, nom::error::ErrorKind::Char))),
+        })
+        .collect::<Result<Vec<&[u8]>, _>>()?;
+    if let Some(last) = values.last() {
+        if last.len() > 2 {
+            return Err(nom::Err::Error((last, nom::error::ErrorKind::Eof)));
+        } else if last.len() < 2 {
+            return Err(nom::Err::Error((last, nom::error::ErrorKind::Complete)));
+        }
+    }
+    Ok((&[], (AddressingMode::ABS, Value::try_from(values).unwrap())))
+}
 //#endregion
 /// Parse argument
 fn argument(input: &[u8]) -> IResult<&[u8], ArgumentType> {
@@ -102,6 +112,7 @@ fn argument(input: &[u8]) -> IResult<&[u8], ArgumentType> {
         hex_value,
         bin_value,
         indexed_indirect,
+        array,
         label_name,
         text,
     ))(input)
@@ -117,6 +128,8 @@ pub fn parse_argument(input: &[u8]) -> IResult<&[u8], ArgumentType> {
     }
     let (input, arg) = argument(input)?;
     if !input.is_empty() {
+        eprintln!("This should've be the end, but found {:X?}", input);
+        eprintln!("Arg: {:?}", arg);
         return Err(nom::Err::Error((input, nom::error::ErrorKind::TooLarge)));
     }
     Ok((input, arg))

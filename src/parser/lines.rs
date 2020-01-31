@@ -39,6 +39,7 @@ fn parse_macro(input: &[u8]) -> IResult<&[u8], (String, Value)> {
     let (input, name) = character::complete::alpha1(input)?;
     let name = String::from_utf8(name.to_vec())
         .map_err(|_| nom::Err::Error((input, nom::error::ErrorKind::MapRes)))?;
+    println!("Macro {}", name);
     let (input, (_, arg)) = parse_argument(input)?;
     Ok((input, (name, arg)))
 }

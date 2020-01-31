@@ -50,8 +50,32 @@ impl Value {
         }
     }
 }
-pub type ArgumentType = (AddressingMode, Value);
+impl std::convert::TryFrom<Vec<&[u8]>> for Value {
+    type Error = crate::Error;
+    fn try_from(v: Vec<&[u8]>) -> Result<Self, Self::Error> {
+        Ok(Value::Array(
+            v.into_iter()
+                .map(|i: &[u8]| Ok(u8::from_str_radix(&String::from_utf8(i.to_vec())?, 16)?.into()))
+                .collect::<Result<Vec<Value>, Self::Error>>()?,
+        ))
+    }
+}
+impl std::convert::From<u8> for Value {
+    fn from(v: u8) -> Self {
+        Self::Short(v)
+    }
+}
 
+mod tests {
+    #[test]
+    fn test_value_try_from() {
+        use std::convert::TryFrom;
+        let res = super::Value::try_from(vec![&b"0F"[..], &b"FA"[..]]);
+        println!("{:X?}", res);
+    }
+}
+
+pub type ArgumentType = (AddressingMode, Value);
 #[derive(Debug)]
 pub struct Opcode {
     pub name: OpcodeType,

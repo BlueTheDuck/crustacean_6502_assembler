@@ -15,9 +15,10 @@ indexed_indirect = "(", hex_addr_short , "X,)";
 absolute_indexed = hex_addr_long,",", ( "X" | "Y" );
 label_name = [ "_" ], { letter | digit };
 text = ? DOUBLE QUOTES ?, text, ? DOUBLE QUOTES ?;
+array = hex_addr_short, [ " ", array ];
 
 opcode = letter, letter, letter;
-arg = a | hex_addr_short | hex_addr_long | absolute_indexed | hex_value | bin_value | indexed_indirect | label_name | text;
+arg = a | hex_addr_short | hex_addr_long | absolute_indexed | hex_value | bin_value | indexed_indirect | label_name | text | array;
 
 label_def = label_name, ":";
 instruction = margin, opcode, [ " ", arg ];

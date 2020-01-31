@@ -154,13 +154,29 @@ pub fn assemble(parsed_code: Vec<LineType>, metadata: &Metadata) -> Result<[u8; 
                             let file_size = file.metadata()?.len();
                             let mut buffer = Vec::with_capacity(file_size as usize);
                             file.read_to_end(&mut buffer)?;
-                            println!("Inserting {} bytes", buffer.len());
+                            println!("Inserting {} bytes", file_size);
                             for byte in buffer {
                                 code.push_byte(byte);
                             }
                         } else {
                         }
                     }
+                    "db" => match arg {
+                        Value::Array(array) => {
+                            for value in array {
+                                match value {
+                                    Value::Short(byte) => code.push_byte(byte),
+                                    _ => continue,
+                                };
+                            }
+                        }
+                        Value::Short(byte) => code.push_byte(byte),
+                        _ => {
+                            return Err(Error::Assembler {
+                                cause: format!("{:?} isn't valid for .db", arg),
+                            })
+                        }
+                    },
                     _ => {
                         return Err(Error::Assembler {
                             cause: format!(

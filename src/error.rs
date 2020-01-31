@@ -7,6 +7,8 @@ custom_error! {pub Error
     Assembler{cause: String} = "Assembler error: {cause}",
     UnkownOpcode{name: String} = "Unkown opcode {name} (Maybe the addressing mode is not valid?)",
     UndefLabel{labels: String} = "These labels were used, but a definition couldn't be found: {labels}",
+    ParseTo{source: std::num::ParseIntError} = "Couldn't parse text to a number: {source}",
+    InvalidText{source: std::string::FromUtf8Error} = "A conversion from Vec<u8> to String failed",
     IoError{source: std::io::Error} = "IO Error {source}"
 }
 
@@ -17,7 +19,7 @@ impl<'i> std::convert::From<NomError<'i>> for Error {
                 let (i, e): (&[u8], ErrorKind) = n;
                 let i =
                     String::from_utf8(i.to_vec()).unwrap_or_else(|_| format!("{:?}", i.to_vec()));
-                format!("Data: {}; Type: {:?}", i, e)
+                format!("Data: <{}>; Type: <{:?}>", i, e)
             }
             NErr::Incomplete(_) => "Needs more data to decide".to_string(),
         };
