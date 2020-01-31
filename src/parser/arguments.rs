@@ -1,4 +1,4 @@
-use super::{bin_to_hex, eof, u8_to_hex};
+use super::{bin_to_hex, eof, is_symbol, is_text, u8_to_hex};
 use super::{AddressingMode, ArgumentType, Value};
 use crate::nom;
 use nom::{bytes::complete as bytes, character, combinator, sequence, IResult};
@@ -22,6 +22,21 @@ fn hex_addr_long(input: &[u8]) -> IResult<&[u8], ArgumentType> {
     let (input, _) = eof(input)?;
     Ok((input, (AddressingMode::ABS, Value::Long(value as u16))))
 }
+
+// absolute_indexed
+named!(
+    absolute_indexed<&[u8],ArgumentType>,
+    do_parse!(
+        char!('$')
+            >> addr: map_res!(take!(4usize),u8_to_hex)
+            >> char!(',')
+            >> reg: alt!(
+                char!('X')  => { |_| AddressingMode::ABSX } |
+                char!('Y')  => { |_| AddressingMode::ABSY }
+            )
+            >> ( (reg, Value::Long(addr as u16)) )
+    )
+);
 
 fn hex_value(input: &[u8]) -> IResult<&[u8], ArgumentType> {
     let (input, _) = character::complete::char('#')(input)?;
@@ -48,20 +63,6 @@ fn indexed_indirect(input: &[u8]) -> IResult<&[u8], ArgumentType> {
     Ok((input, (AddressingMode::INDX, Value::Short(value as u8))))
 }
 
-named!(
-    absolute_indexed<&[u8],ArgumentType>,
-    do_parse!(
-        char!('$')
-            >> addr: map_res!(take!(4usize),u8_to_hex)
-            >> char!(',')
-            >> reg: alt!(
-                char!('X')  => { |_| AddressingMode::ABSX } |
-                char!('Y')  => { |_| AddressingMode::ABSY }
-            )
-            >> ( (  reg,Value::Long(addr as u16)    )   )
-    )
-);
-
 // TODO: Improve label recognition
 fn label_name(input: &[u8]) -> IResult<&[u8], ArgumentType> {
     let (input, value) = combinator::map_res(character::complete::alphanumeric1, |s: &[u8]| {
@@ -71,6 +72,17 @@ fn label_name(input: &[u8]) -> IResult<&[u8], ArgumentType> {
     Ok((input, (AddressingMode::ABS, Value::Label(value))))
 }
 
+// text
+named!(
+    text<&[u8],ArgumentType>,
+    do_parse!(
+        text: delimited!(char!('"'), is_text, char!('"'))
+            >> ((AddressingMode::ABS, Value::Text(Box::from(text))))
+    )
+);
+
+//#endregion
+/// Parse argument
 fn argument(input: &[u8]) -> IResult<&[u8], ArgumentType> {
     nom::branch::alt((
         a,
@@ -81,9 +93,9 @@ fn argument(input: &[u8]) -> IResult<&[u8], ArgumentType> {
         bin_value,
         indexed_indirect,
         label_name,
+        text,
     ))(input)
 }
-//#endregion
 
 pub fn parse_argument(input: &[u8]) -> IResult<&[u8], ArgumentType> {
     if input.is_empty() {
@@ -193,6 +205,14 @@ mod tests {
         println!("{:#?}", res);
         res.expect(":(");
         //assert_eq!(res, (AddressingMode::INDX, Value::Short(0x02)));
+    }
+
+    fn test_text() {
+        let tests = [r#""Hello""#, r#""123.456""#, r#""hello.world""#];
+        for test in &tests {
+            let test = test.as_bytes();
+            let text = super::text(test).unwrap_or_else(|_| panic!("Test failed: {:?}", test));
+        }
     }
 
     #[test]

@@ -16,46 +16,37 @@ impl Value {
     pub fn is_short(&self) -> bool {
         match self {
             Value::Short(_) => true,
-            Value::Long(_) => false,
-            Value::Label(_) => false,
-            Value::Array(_) => false,
-            Value::None => false,
+            _ => false,
         }
     }
     pub fn is_long(&self) -> bool {
         match self {
-            Value::Short(_) => false,
             Value::Long(_) => true,
-            Value::Label(_) => false,
-            Value::Array(_) => false,
-            Value::None => false,
+            _ => false,
         }
     }
     pub fn is_label(&self) -> bool {
         match self {
-            Value::Short(_) => false,
-            Value::Long(_) => false,
             Value::Label(_) => true,
-            Value::Array(_) => false,
-            Value::None => false,
+            _ => false,
         }
     }
     pub fn is_array(&self) -> bool {
         match self {
-            Value::Short(_) => false,
-            Value::Long(_) => false,
-            Value::Label(_) => false,
             Value::Array(_) => true,
-            Value::None => false,
+            _ => false,
+        }
+    }
+    pub fn is_text(&self) -> bool {
+        match self {
+            Value::Text(_) => true,
+            _ => false,
         }
     }
     pub fn is_none(&self) -> bool {
         match self {
-            Value::Short(_) => false,
-            Value::Long(_) => false,
-            Value::Label(_) => false,
-            Value::Array(_) => false,
             Value::None => true,
+            _ => false,
         }
     }
 }

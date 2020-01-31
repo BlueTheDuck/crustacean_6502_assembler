@@ -8,7 +8,7 @@ mod lines;
 mod types;
 
 // Private (for submodules)
-use helpers::{bin_to_hex, eof, u8_to_hex};
+use helpers::{bin_to_hex, eof, is_symbol, is_text, u8_to_hex};
 use types::ArgumentType;
 
 // Public exports
