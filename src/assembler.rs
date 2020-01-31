@@ -206,6 +206,14 @@ pub fn assemble(parsed_code: Vec<LineType>, metadata: &Metadata) -> Result<[u8; 
                         } else {
                         }
                     }
+                    "bank" => {
+                        if let Value::Label(id) = arg {
+                            let new_bank: usize = id.parse().expect("Banks use numerical IDs");
+                            println!("Bank {}", new_bank);
+                            banks_usage[bank] = Some(code.pointer);
+                            bank = new_bank;
+                        }
+                    }
                     _ => {
                         return Err(Error::Assembler {
                             cause: format!(
