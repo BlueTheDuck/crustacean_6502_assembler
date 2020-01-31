@@ -80,7 +80,7 @@ mod tests {
     #[test]
     fn test_line() {
         use crate::parser::parse_line;
-        let code: &str = include_str!("../../assembly/custom.asm");
+        let code: &str = include_str!("../../assembly/general/custom.asm");
         for l in code.lines() {
             println!("{:X?}", parse_line(l.as_bytes()));
         }
