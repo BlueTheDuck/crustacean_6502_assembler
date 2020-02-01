@@ -1,62 +1,9 @@
-use crate::addressing_modes;
-use crate::error::Error;
+use super::{Code, LabelUse, LineType, LineType::*, Metadata, Value};
 use crate::opcodes::get_code;
-use crate::parser::{LineType, Value};
+use crate::{addressing_modes, Error};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
-
-/// 0: Low 1: High
-fn big_to_little_endian(value: u16) -> (u8, u8) {
-    ((value & 0xFF) as u8, ((value & 0xFF00) >> 8) as u8)
-}
-
-struct Code {
-    cart: [u8; 0x10000],
-    pointer: usize,
-}
-impl Code {
-    fn new() -> Self {
-        Self {
-            cart: [0x00u8; 0x10000],
-            pointer: 0,
-        }
-    }
-    /// Place a u8 on self.pointer, then increment by 1
-    fn push_byte(&mut self, byte: u8) {
-        self.cart[self.pointer] = byte;
-        self.pointer += 1;
-    }
-    /// Take a u16, convert it to little endian then place it on self.pointer, finally increment by 2
-    fn push_long(&mut self, long: u16) {
-        let long = big_to_little_endian(long);
-        self.push_byte(long.0);
-        self.push_byte(long.1);
-    }
-    /// Add <amount> to self.pointer
-    fn skip(&mut self, amount: usize) {
-        self.pointer += amount;
-    }
-}
-pub struct Metadata {
-    /// Where to find include files
-    pub search_path: std::path::PathBuf,
-}
-impl std::default::Default for Metadata {
-    fn default() -> Self {
-        Metadata {
-            search_path: std::path::PathBuf::from(""),
-        }
-    }
-}
-
-#[derive(Debug, Copy, Clone)]
-struct LabelUse {
-    /// Where was this label used?
-    location: usize,
-    /// Was this label used for a relative (branch) instruction
-    is_relative: bool,
-}
 
 macro_rules! impl_macros {
     ($type:ident,$arg:ident, $($name:literal => { $($pattern:pat => $code:expr),+ }),+  ) => {{
@@ -211,66 +158,5 @@ pub fn assemble(parsed_code: Vec<LineType>, metadata: &Metadata) -> Result<[u8; 
             labels: format!("{:?}", labels_used_on),
         });
     }
-    Ok(code.cart)
-}
-
-mod tests {
-    #[test]
-    fn test_assemble() {
-        use crate::assembler::assemble;
-        use crate::parser::{parse_line, LineType};
-        let metadata = super::Metadata::default();
-        let test_code: &str = include_str!("../assembly/general/basic_opcodes.asm");
-        let test_code: Vec<LineType> = test_code
-            .lines()
-            .map(|l: &str| parse_line(l.as_bytes()).unwrap().1)
-            .collect();
-        let code: [u8; 0x10000] =
-            assemble(test_code, &metadata).expect("This shouldn't have errored");
-        super::dump(&code, Some(0x80), Some(0x80));
-        assert_eq!(code[0x0000..0x0005], [0xA9, 0xFF, 0x85, 0xFF, 0x18]);
-    }
-    #[test]
-    fn test_labels() {
-        use crate::assembler::assemble;
-        use crate::parser::{parse_line, LineType};
-        let metadata = super::Metadata::default();
-        let test_code: &str = "\tLDA main";
-        let test_code: Vec<LineType> = test_code
-            .lines()
-            .map(|l: &str| parse_line(l.as_bytes()).unwrap().1)
-            .collect();
-        assert!(assemble(test_code, &metadata).is_err());
-        let test_code: &str = "main:\n\tLDA main";
-        let test_code: Vec<LineType> = test_code
-            .lines()
-            .map(|l: &str| parse_line(l.as_bytes()).unwrap().1)
-            .collect();
-        let code = assemble(test_code, &metadata).unwrap();
-        assert_eq!(code[0x0000..0x0003], [0xAD, 0x00, 0x00]);
-    }
-}
-
-#[allow(dead_code)]
-pub fn dump(code: &[u8], page_start: Option<usize>, page_end: Option<usize>) {
-    for (page_addr, page) in code.chunks(256).enumerate() {
-        if page_start.is_some() && page_addr < page_start.unwrap() {
-            continue;
-        }
-        if page_end.is_some() && page_addr > page_end.unwrap() {
-            break;
-        }
-        let page: &[u8] = page;
-        for (line_addr, line) in page.chunks(16).enumerate() {
-            let line: &[u8] = line;
-            println!(
-                "{:#04X?}: {:?}",
-                page_addr * 256 + line_addr * 16,
-                line.iter()
-                    .map(|v| format!("{:02X}", v))
-                    .collect::<Vec<String>>()
-                    .join(",")
-            );
-        }
-    }
+    Ok(*code)
 }
