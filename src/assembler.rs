@@ -58,6 +58,30 @@ struct LabelUse {
     is_relative: bool,
 }
 
+macro_rules! impl_macros {
+    ($type:ident,$arg:ident, $($name:literal => { $($pattern:pat => $code:expr),+ }),+  ) => {{
+        match &*$type {
+            $(
+                $name => {
+                    match $arg {
+                        $($pattern => {$code}),+
+                        _ => {
+                            return Err(Error::Assembler{
+                                cause: format!("The macro '{}' can't take {:?} as argument",$type,$arg)
+                            });
+                        }
+                    }
+                }
+            ),+
+            _ => {
+                return Err(Error::Assembler{
+                    cause: format!("The macro '{}' hasn't been implemented yet",$type)
+                });
+            }
+        }
+    }};
+}
+
 pub fn assemble(parsed_code: Vec<LineType>, metadata: &Metadata) -> Result<[u8; 0x10000], Error> {
     let mut code = Code::new(); // code: holds the code
     let mut labels: HashMap<String, usize> = HashMap::default(); // labels: holds the addrs of each label
@@ -109,23 +133,15 @@ pub fn assemble(parsed_code: Vec<LineType>, metadata: &Metadata) -> Result<[u8; 
             }
             LineType::Macro(r#type, arg) => {
                 println!("Interpreting macro {:?} {:X?}", r#type, arg);
-                match &*r#type {
+                impl_macros!(r#type,arg,
                     "org" => {
-                        if let Value::Long(addr) = arg {
-                            code.pointer = addr.into();
-                        } else {
-                            return Err(Error::Assembler {
-                                cause: ".org can only be used with long literals".to_string(),
-                            });
-                        }
-                    }
-                    "byte" => match arg {
-                        Value::Short(value) => code.push_byte(value),
-                        Value::Long(value) => code.push_long(value),
-                        _ => {}
+                        Value::Long(addr) => {code.pointer = addr as usize;}
                     },
-                    "dw" => match arg {
-                        Value::Long(value) => code.push_long(value),
+                    "byte" => {
+                        Value::Short(arg) => code.push_byte(arg)
+                    },
+                    "dw" => {
+                        Value::Long(value) => {code.push_long(value)},
                         Value::Label(name) => {
                             let label_use = LabelUse {
                                 location: code.pointer,
@@ -138,54 +154,32 @@ pub fn assemble(parsed_code: Vec<LineType>, metadata: &Metadata) -> Result<[u8; 
                             }
                             code.pointer += 2;
                         }
-                        _ => {
-                            unimplemented!("{:?} is not implemented for .dw", arg);
-                        }
                     },
-                    "incbin" if arg.is_text() => {
-                        if let Value::Text(arg) = arg {
-                            let arg = String::from_utf8(arg.into_vec())
-                                .expect("File name wasn't an UTF-8 string");
-                            let mut path =
-                                std::path::PathBuf::from(metadata.search_path.as_os_str());
-                            path.push(arg);
-                            println!("Including bytes from {}", path.display());
-                            let mut file = File::open(path)?;
-                            let file_size = file.metadata()?.len();
-                            let mut buffer = Vec::with_capacity(file_size as usize);
-                            file.read_to_end(&mut buffer)?;
-                            println!("Inserting {} bytes", file_size);
-                            for byte in buffer {
-                                code.push_byte(byte);
-                            }
-                        } else {
-                        }
-                    }
-                    "db" => match arg {
+                    "incbin" => {
+                        Value::Text(arg) => {let arg = String::from_utf8(arg.into_vec())
+                            .expect("File name wasn't an UTF-8 string");
+                        let mut path =
+                            std::path::PathBuf::from(metadata.search_path.as_os_str());
+                        path.push(arg);
+                        println!("Including bytes from {}", path.display());
+                        let mut file = File::open(path)?;
+                        let file_size = file.metadata()?.len();
+                        let mut buffer = Vec::with_capacity(file_size as usize);
+                        file.read_to_end(&mut buffer)?;
+                        println!("Inserting {} bytes", file_size);
+                        for byte in buffer {
+                            code.push_byte(byte);
+                        }}
+                    },
+                    "db" => {
                         Value::Array(array) => {
                             for value in array {
-                                match value {
-                                    Value::Short(byte) => code.push_byte(byte),
-                                    _ => continue,
-                                };
+                                if let Value::Short(byte) = value {code.push_byte(byte);}
                             }
-                        }
-                        Value::Short(byte) => code.push_byte(byte),
-                        _ => {
-                            return Err(Error::Assembler {
-                                cause: format!("{:?} isn't valid for .db", arg),
-                            })
-                        }
-                    },
-                    _ => {
-                        return Err(Error::Assembler {
-                            cause: format!(
-                                "Error in macro invocation:\n Name: {}\n Arg {:?} ",
-                                r#type, arg
-                            ),
-                        });
+                        },
+                        Value::Short(byte) => {code.push_byte(byte)}
                     }
-                }
+                );
             }
         };
     }
