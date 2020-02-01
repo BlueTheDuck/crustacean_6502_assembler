@@ -3,6 +3,7 @@ extern crate nom;
 
 use assembler::assemble;
 use error::Error;
+use formats::Format;
 use parser::LineType;
 use std::io::{BufRead, BufReader, BufWriter, Write};
 use std::path::PathBuf;
@@ -15,12 +16,15 @@ struct Args {
     input: PathBuf,
     #[structopt(short = "o", long, parse(from_os_str))]
     output: Option<PathBuf>,
+    #[structopt(parse(from_str), long, default_value = "Hex")]
+    format: formats::Format,
 }
 // #endregion
 
 mod addressing_modes;
 mod assembler;
 mod error;
+mod formats;
 mod opcodes;
 mod parser;
 
@@ -41,7 +45,7 @@ fn main() -> Result<(), error::Error> {
                 Some(v) => v,
                 None => {
                     let mut out = args.input.clone();
-                    out.set_extension("hex");
+                    out.set_extension::<String>(args.format.into());
                     out
                 }
             })
@@ -79,7 +83,10 @@ fn main() -> Result<(), error::Error> {
     };
 
     let code = assemble(code, &metadata)?;
-    output_buf.write_all(&code)?;
+    match args.format {
+        Format::Hex => output_buf.write_all(&code)?,
+        _ => unimplemented!("This format hasn't been implemented yet"),
+    };
 
     Ok(())
 }
