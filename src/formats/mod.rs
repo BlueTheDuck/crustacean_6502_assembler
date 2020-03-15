@@ -30,4 +30,4 @@ macro_rules! import_formats {
     };
 }
 
-import_formats!(Hex->"hex");
+import_formats!(Hex->"hex", Nes2->"nes");

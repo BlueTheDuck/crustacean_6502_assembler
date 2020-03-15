@@ -45,7 +45,8 @@ fn main() -> Result<(), error::Error> {
                 Some(v) => v,
                 None => {
                     let mut out = args.input.clone();
-                    out.set_extension::<String>(args.format.into());
+                    let fmt: Format = args.format.into();
+                    out.set_extension(fmt.get_ext());
                     out
                 }
             })
@@ -55,12 +56,48 @@ fn main() -> Result<(), error::Error> {
     let code: Vec<_> = input_buf
         .lines()
         .map(|line: Result<String, std::io::Error>| {
+            let mut escape = false;
+            let mut in_string = false;
+            let mut in_comment = false;
             let line: String = line?
-                .split(';')
-                .next()
-                .unwrap_or_default()
-                .trim()
-                .to_owned();
+                .chars()
+                .filter_map(|c: char| {
+                    if in_comment {
+                        None
+                    } else {
+                        match c {
+                            '\\' => {
+                                escape = true;
+                                None
+                            }
+                            '"' if !escape => {
+                                in_string = !in_string;
+                                Some('"')
+                            }
+                            '"' if escape => Some(c),
+                            'n' if escape => Some(0x10 as char),
+                            ';' => {
+                                in_comment = true;
+                                None
+                            }
+                            _ => {
+                                if escape {
+                                    panic!("\\{} doesn't mean anything", c)
+                                } else {
+                                    Some(c)
+                                }
+                            }
+                        }
+                    }
+                })
+                .collect();
+            /* let line: String = line?
+            .split(';')
+            .next()
+            .unwrap_or_default()
+            .trim()
+            .to_owned(); */
+            println!("Line {}", line);
             Ok(line)
         })
         .filter(|line: &Result<_, _>| match line {
